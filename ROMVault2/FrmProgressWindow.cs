@@ -16,9 +16,9 @@ namespace ROMVault2
     public partial class FrmProgressWindow : Form
     {
         private readonly string _titleRoot;
+        private readonly Form _parentForm;
         private bool _errorOpen;
         private bool _bDone;
-        private Form _parentForm;
 
         public FrmProgressWindow(Form parentForm, string titleRoot, DoWorkEventHandler function)
         {
@@ -45,7 +45,6 @@ namespace ROMVault2
         }
 
 
-
         private void FrmProgressWindowNewShown(object sender, EventArgs e)
         {
             bgWork.ProgressChanged += BgwProgressChanged;
@@ -57,8 +56,10 @@ namespace ROMVault2
         {
             if (e.UserState == null)
             {
-                if (e.ProgressPercentage >= progressBar.Minimum && e.ProgressPercentage <= progressBar.Maximum)
+                if ((e.ProgressPercentage >= progressBar.Minimum) && (e.ProgressPercentage <= progressBar.Maximum))
+                {
                     progressBar.Value = e.ProgressPercentage;
+                }
                 UpdateStatusText();
                 return;
             }
@@ -90,8 +91,10 @@ namespace ROMVault2
             bgwValue2 bgwV2 = e.UserState as bgwValue2;
             if (bgwV2 != null)
             {
-                if (bgwV2.Value >= progressBar2.Minimum && bgwV2.Value <= progressBar2.Maximum)
+                if ((bgwV2.Value >= progressBar2.Minimum) && (bgwV2.Value <= progressBar2.Maximum))
+                {
                     progressBar2.Value = bgwV2.Value;
+                }
                 UpdateStatusText2();
                 return;
             }
@@ -142,9 +145,11 @@ namespace ROMVault2
                 ErrorGrid.Rows[row].Cells["CErrorFile"].Value = bgwSC.filename;
                 ErrorGrid.Rows[row].Cells["CErrorFile"].Style.ForeColor = Color.FromArgb(255, 0, 0);
 
-                if (row >= 0) ErrorGrid.FirstDisplayedScrollingRowIndex = row;
+                if (row >= 0)
+                {
+                    ErrorGrid.FirstDisplayedScrollingRowIndex = row;
+                }
             }
-
 
 
             bgwShowError bgwSDE = e.UserState as bgwShowError;
@@ -167,20 +172,21 @@ namespace ROMVault2
                 ErrorGrid.Rows[row].Cells["CErrorFile"].Value = bgwSDE.filename;
                 ErrorGrid.Rows[row].Cells["CErrorFile"].Style.ForeColor = Color.FromArgb(255, 0, 0);
 
-                if (row >= 0) ErrorGrid.FirstDisplayedScrollingRowIndex = row;
-
+                if (row >= 0)
+                {
+                    ErrorGrid.FirstDisplayedScrollingRowIndex = row;
+                }
             }
-
-
-
         }
+
         private void UpdateStatusText()
         {
             int range = progressBar.Maximum - progressBar.Minimum;
-            int percent = range > 0 ? (progressBar.Value * 100) / range : 0;
+            int percent = range > 0 ? progressBar.Value*100/range : 0;
 
-            Text = _titleRoot + String.Format(" - {0}% complete", percent);
+            Text = _titleRoot + string.Format(" - {0}% complete", percent);
         }
+
         private void UpdateStatusText2()
         {
             lbl2Prog.Text = progressBar2.Maximum > 0 ? string.Format("{0}/{1}", progressBar2.Value, progressBar2.Maximum) : "";
@@ -205,7 +211,10 @@ namespace ROMVault2
         {
             if (_bDone)
             {
-                if (!_parentForm.Visible) _parentForm.Show();
+                if (!_parentForm.Visible)
+                {
+                    _parentForm.Show();
+                }
                 Close();
             }
             else
@@ -226,16 +235,24 @@ namespace ROMVault2
             switch (WindowState)
             {
                 case FormWindowState.Minimized:
-                    if (_parentForm.Visible) _parentForm.Hide();
+                    if (_parentForm.Visible)
+                    {
+                        _parentForm.Hide();
+                    }
                     return;
                 case FormWindowState.Maximized:
-                    if (!_parentForm.Visible) _parentForm.Show();
+                    if (!_parentForm.Visible)
+                    {
+                        _parentForm.Show();
+                    }
                     return;
                 case FormWindowState.Normal:
-                    if (!_parentForm.Visible) _parentForm.Show();
+                    if (!_parentForm.Visible)
+                    {
+                        _parentForm.Show();
+                    }
                     return;
             }
         }
-
     }
 }

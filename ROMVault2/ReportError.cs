@@ -8,18 +8,18 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.ServiceModel;
+using System.Threading;
 using System.Windows.Forms;
 using ROMVault2.RvDB;
 using ROMVault2.Utils;
-
 
 namespace ROMVault2
 {
     public static class ReportError
     {
+        private static string _logfilename;
 
-        public static void UnhandledExceptionHandler(object sender, System.Threading.ThreadExceptionEventArgs e)
+        public static void UnhandledExceptionHandler(object sender, ThreadExceptionEventArgs e)
         {
             try
             {
@@ -58,7 +58,6 @@ namespace ROMVault2
                 FrmShowError fshow = new FrmShowError();
                 fshow.settype(message);
                 fshow.ShowDialog();
-
             }
             catch
             {
@@ -70,7 +69,7 @@ namespace ROMVault2
             try
             {
                 // Create Error Message
-                string message = string.Format("An Application Error has occurred.\r\n\r\nEXCEPTION:\r\nMessage:");
+                string message = "An Application Error has occurred.\r\n\r\nEXCEPTION:\r\nMessage:";
                 message += e1 + "\r\n";
 
                 message += string.Format("\r\nSTACK TRACE:\r\n{0}", Environment.StackTrace);
@@ -102,16 +101,21 @@ namespace ROMVault2
         public static void Show(string text, string caption = "RomVault", MessageBoxButtons buttons = MessageBoxButtons.OK, MessageBoxIcon icon = MessageBoxIcon.Exclamation)
         {
             if (Program.SyncCont != null)
+            {
                 Program.SyncCont.Send(callback => MessageBox.Show(text, caption, buttons, icon), null);
+            }
             else
+            {
                 MessageBox.Show(text, caption, buttons, icon);
+            }
         }
-
-        private static string _logfilename;
 
         public static void ReportList(List<RvFile> files)
         {
-            if (!Program.rvSettings.DebugLogsEnabled) return;
+            if (!Program.rvSettings.DebugLogsEnabled)
+            {
+                return;
+            }
 
             string dir, now;
             OpenLogFile(out dir, out now);
@@ -132,7 +136,9 @@ namespace ROMVault2
         {
             dir = Path.Combine(Application.StartupPath, "Logs");
             if (!Directory.Exists(dir))
+            {
                 Directory.CreateDirectory(dir);
+            }
 
             now = DateTime.Now.ToString(CultureInfo.InvariantCulture);
             now = now.Replace("\\", "-");
@@ -140,7 +146,6 @@ namespace ROMVault2
             now = now.Replace(":", "-");
 
             _logfilename = Path.Combine(dir, now + " UpdateLog.txt");
-
         }
 
         private static void ReportFile(TextWriter sw, RvFile f)
@@ -150,7 +155,10 @@ namespace ROMVault2
 
         public static void LogOut(string s)
         {
-            if (!Program.rvSettings.DebugLogsEnabled) return;
+            if (!Program.rvSettings.DebugLogsEnabled)
+            {
+                return;
+            }
 
             if (_logfilename == null)
             {
@@ -162,11 +170,14 @@ namespace ROMVault2
             sw.WriteLine(s);
             sw.Flush();
             sw.Close();
-
         }
+
         public static void LogOut(RvFile f)
         {
-            if (!Program.rvSettings.DebugLogsEnabled) return;
+            if (!Program.rvSettings.DebugLogsEnabled)
+            {
+                return;
+            }
 
             StreamWriter sw = new StreamWriter(_logfilename, true);
             ReportFile(sw, f);

@@ -42,7 +42,7 @@ namespace ROMVault2
 
             Program.rvSettings.SetDefaults();
 
-            DB.Read(sender,e);
+            DB.Read(sender, e);
         }
 
 
@@ -50,8 +50,10 @@ namespace ROMVault2
         {
             if (e.UserState == null)
             {
-                if (e.ProgressPercentage >= progressBar.Minimum && e.ProgressPercentage <= progressBar.Maximum)
+                if ((e.ProgressPercentage >= progressBar.Minimum) && (e.ProgressPercentage <= progressBar.Maximum))
+                {
                     progressBar.Value = e.ProgressPercentage;
+                }
                 return;
             }
             bgwSetRange bgwSr = e.UserState as bgwSetRange;
@@ -78,18 +80,23 @@ namespace ROMVault2
 
         private void Timer1Tick(object sender, EventArgs e)
         {
-
             if (_opacityIncrement > 0)
             {
                 if (Opacity < 1)
+                {
                     Opacity += _opacityIncrement;
+                }
                 else
+                {
                     timer1.Stop();
+                }
             }
             else
             {
                 if (Opacity > 0)
+                {
                     Opacity += _opacityIncrement;
+                }
                 else
                 {
                     timer1.Stop();
@@ -97,6 +104,5 @@ namespace ROMVault2
                 }
             }
         }
-
     }
 }

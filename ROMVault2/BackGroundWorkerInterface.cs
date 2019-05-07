@@ -4,21 +4,20 @@
  *     Copyright 2014                                 *
  ******************************************************/
 
-using ROMVault2.SupportedFiles;
+using Compress;
 
 namespace ROMVault2
 {
-
-    
     public class bgwProgress
     {
         public bgwProgress(int Progress)
         {
             this.Progress = Progress;
         }
+
         public int Progress { get; private set; }
     }
-    
+
 
     public class bgwText
     {
@@ -29,6 +28,7 @@ namespace ROMVault2
 
         public string Text { get; private set; }
     }
+
     public class bgwText2
     {
         public bgwText2(string Text)
@@ -38,6 +38,7 @@ namespace ROMVault2
 
         public string Text { get; private set; }
     }
+
     public class bgwText3
     {
         public bgwText3(string Text)
@@ -58,6 +59,7 @@ namespace ROMVault2
 
         public int MaxVal { get; private set; }
     }
+
     public class bgwSetRange2
     {
         public bgwSetRange2(int MaxVal)
@@ -67,7 +69,6 @@ namespace ROMVault2
 
         public int MaxVal { get; private set; }
     }
-
 
 
     public class bgwValue2

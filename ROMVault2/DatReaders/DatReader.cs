@@ -8,9 +8,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Xml;
 using ROMVault2.RvDB;
 using ROMVault2.Utils;
+using FileStream = RVIO.FileStream;
 
 namespace ROMVault2.DatReaders
 {
@@ -18,46 +20,66 @@ namespace ROMVault2.DatReaders
     {
         private static BackgroundWorker _bgw;
 
+
+        private static void ReadError(string filename, string error)
+        {
+            _bgw.ReportProgress(0, new bgwShowError(filename, error));
+        }
+
         public static RvDir ReadInDatFile(RvDat datFile, BackgroundWorker bgw)
         {
             _bgw = bgw;
-
-            RvDir newDir = new RvDir(FileType.Dir);
-
             string datFullName = datFile.GetData(RvDat.DatData.DatFullName);
 
-            System.IO.Stream fs;
-            int errorCode = IO.FileStream.OpenFileRead(datFullName, out fs);
+/*
+            DatRead dr = new DatRead
+            {
+                ErrorReport = ReadError
+            };
+            DatHeader dh;
+            dr.ReadDat(datFullName, out dh);
+*/
+
+            RvDir newDir = new RvDir(FileType.Dir);
+            int errorCode = FileStream.OpenFileRead(datFullName, out Stream fs);
             if (errorCode != 0)
             {
                 _bgw.ReportProgress(0, new bgwShowError(datFullName, errorCode + ": " + new Win32Exception(errorCode).Message));
                 return null;
             }
 
-            System.IO.StreamReader myfile = new System.IO.StreamReader(fs, Program.Enc);
+            StreamReader myfile = new StreamReader(fs, Program.Enc);
             string strLine = myfile.ReadLine();
             myfile.Close();
             fs.Close();
             fs.Dispose();
 
             if (strLine == null)
+            {
                 return null;
+            }
 
             if (strLine.ToLower().IndexOf("xml", StringComparison.Ordinal) >= 0)
             {
                 if (!ReadXMLDat(ref newDir, datFullName))
+                {
                     return null;
+                }
             }
 
-            else if (strLine.ToLower().IndexOf("clrmamepro", StringComparison.Ordinal) >= 0 || strLine.ToLower().IndexOf("romvault", StringComparison.Ordinal) >= 0 || strLine.ToLower().IndexOf("game", StringComparison.Ordinal) >= 0)
+            else if ((strLine.ToLower().IndexOf("clrmamepro", StringComparison.Ordinal) >= 0) || (strLine.ToLower().IndexOf("romvault", StringComparison.Ordinal) >= 0) || (strLine.ToLower().IndexOf("game", StringComparison.Ordinal) >= 0))
             {
                 if (!DatCmpReader.ReadDat(ref newDir, datFullName))
+                {
                     return null;
+                }
             }
             else if (strLine.ToLower().IndexOf("doscenter", StringComparison.Ordinal) >= 0)
             {
                 if (!DatDOSReader.ReadDat(ref newDir, datFullName))
+                {
                     return null;
+                }
             }
             else
             {
@@ -71,6 +93,16 @@ namespace ROMVault2.DatReaders
                 return null;
             }
 
+            /*
+            DatCleaner.DatSetRemoveUnneededDirs(dh.BaseDir);
+            DatCleaner.DatSetCheckParentSets(dh.BaseDir);
+            DatCleaner.DatSetRemoveUnneededDirs(dh.BaseDir);
+            if (dh.MergeType=="full")
+                DatCleaner.DatSetMergeSets(dh.BaseDir);
+
+            DatCleaner.DatSetCheckCollect(dh.BaseDir);
+            */
+
             newDir.Dat.AddData(RvDat.DatData.DatFullName, datFullName);
             newDir.Dat.TimeStamp = datFile.TimeStamp;
             newDir.Dat.Status = DatUpdateStatus.Correct;
@@ -80,7 +112,9 @@ namespace ROMVault2.DatReaders
             DatSetRenameAndRemoveDups(newDir);
 
             if (newDir.Dat.GetData(RvDat.DatData.MergeType).ToLower() == "full")
+            {
                 DatSetMergeSets(newDir);
+            }
 
             DatSetCheckCollect(newDir);
 
@@ -95,12 +129,9 @@ namespace ROMVault2.DatReaders
         }
 
 
-
-
         private static bool ReadXMLDat(ref RvDir tDat, string strFilename)
         {
-            System.IO.Stream fs;
-            int errorCode = IO.FileStream.OpenFileRead(strFilename, out fs);
+            int errorCode = FileStream.OpenFileRead(strFilename, out Stream fs);
             if (errorCode != 0)
             {
                 _bgw.ReportProgress(0, new bgwShowError(strFilename, errorCode + ": " + new Win32Exception(errorCode).Message));
@@ -123,22 +154,30 @@ namespace ROMVault2.DatReaders
             fs.Dispose();
 
             if (doc.DocumentElement == null)
+            {
                 return false;
+            }
 
             XmlNode mame = doc.SelectSingleNode("mame");
             if (mame != null)
+            {
                 return DatXmlReader.ReadMameDat(ref tDat, doc);
+            }
 
             if (doc.DocumentElement != null)
             {
                 XmlNode head = doc.DocumentElement.SelectSingleNode("header");
                 if (head != null)
+                {
                     return DatXmlReader.ReadDat(ref tDat, doc);
+                }
             }
 
             XmlNodeList headList = doc.SelectNodes("softwarelist");
             if (headList != null)
+            {
                 return DatMessXmlReader.ReadDat(ref tDat, doc);
+            }
 
             return false;
         }
@@ -160,15 +199,19 @@ namespace ROMVault2.DatReaders
                         RvFile f1 = (RvFile)tDir.Child(r + 1);
 
                         if (f0.Name != f1.Name)
+                        {
                             continue;
+                        }
 
-                        if (f0.Size != f1.Size || !ArrByte.bCompare(f0.CRC, f1.CRC))
+                        if ((f0.Size != f1.Size) || !ArrByte.bCompare(f0.CRC, f1.CRC))
                         {
                             tDir.ChildRemove(r + 1); // remove F1
                             f1.Name = f1.Name + "_" + ArrByte.ToString(f1.CRC); // rename F1;
                             int pos = tDir.ChildAdd(f1);
                             if (pos < r)
+                            {
                                 r = pos;
+                            }
                             // if this rename moved the File back up the list, start checking again from that file.
                         }
                         else
@@ -180,6 +223,7 @@ namespace ROMVault2.DatReaders
                 }
             }
         }
+
         private static void DatSetRemoveUnneededDirs(RvDir tDat)
         {
             for (int g = 0; g < tDat.ChildCount; g++)
@@ -197,17 +241,25 @@ namespace ROMVault2.DatReaders
                         // there are RvFiles that are really directories (probably inside a zip file)
                         RvFile f0 = (RvFile)tGame.Child(r);
                         if (f0.Name.Length == 0)
+                        {
                             continue;
+                        }
                         if (f0.Name.Substring(f0.Name.Length - 1, 1) != "/")
+                        {
                             continue;
+                        }
 
                         // if the next file contains that found directory, then the directory file can be deleted
                         RvFile f1 = (RvFile)tGame.Child(r + 1);
                         if (f1.Name.Length <= f0.Name.Length)
+                        {
                             continue;
+                        }
 
                         if (f0.Name != f1.Name.Substring(0, f0.Name.Length))
+                        {
                             continue;
+                        }
 
                         tGame.ChildRemove(r);
                         r--;
@@ -231,8 +283,10 @@ namespace ROMVault2.DatReaders
             {
                 RvDir mGame = (RvDir)tDat.Child(g);
                 if (mGame.Game == null)
-                    // this is a directory so recuse into it
+                // this is a directory so recuse into it
+                {
                     DatSetCheckParentSets(mGame);
+                }
             }
 
             bool fix = true;
@@ -243,19 +297,22 @@ namespace ROMVault2.DatReaders
                 // loop around every ROM Set looking for fixes.
                 for (int g = 0; g < tDat.ChildCount; g++)
                 {
-
                     // get a list of that ROM Sets parents.
                     RvDir mGame = (RvDir)tDat.Child(g);
 
                     if (mGame.Game == null)
+                    {
                         continue;
+                    }
 
                     List<RvDir> lstParentGames = new List<RvDir>();
                     FindParentSet(mGame, tDat, ref lstParentGames);
 
                     // if this set have parents
                     if (lstParentGames.Count == 0)
+                    {
                         continue;
+                    }
 
                     // now loop every ROM in the current set.
                     for (int r = 0; r < mGame.ChildCount; r++)
@@ -271,12 +328,16 @@ namespace ROMVault2.DatReaders
                             for (int r1 = 0; r1 < romofGame.ChildCount; r1++)
                             {
                                 // don't search fixes for files marked as nodump
-                                if (((RvFile)mGame.Child(r)).Status == "nodump" || ((RvFile)romofGame.Child(r1)).Status == "nodump")
+                                if ((((RvFile)mGame.Child(r)).Status == "nodump") || (((RvFile)romofGame.Child(r1)).Status == "nodump"))
+                                {
                                     continue;
+                                }
 
                                 // only find fixes if the Name and the Size of the ROMs are the same
-                                if (mGame.Child(r).Name != romofGame.Child(r1).Name || ((RvFile)mGame.Child(r)).Size != ((RvFile)romofGame.Child(r1)).Size)
+                                if ((mGame.Child(r).Name != romofGame.Child(r1).Name) || (((RvFile)mGame.Child(r)).Size != ((RvFile)romofGame.Child(r1)).Size))
+                                {
                                     continue;
+                                }
 
                                 // now check if one of the matching roms has missing or incorrect CRC information
                                 bool b1 = ((RvFile)mGame.Child(r)).CRC == null;
@@ -284,17 +345,19 @@ namespace ROMVault2.DatReaders
 
                                 // if one has correct information and the other does not, fix the missing one
                                 if (b1 == b2)
+                                {
                                     continue;
+                                }
 
                                 if (b1)
                                 {
-                                    ((RvFile)mGame.Child(r)).CRC =ArrByte.Copy( ((RvFile)romofGame.Child(r1)).CRC);
+                                    ((RvFile)mGame.Child(r)).CRC = ArrByte.Copy(((RvFile)romofGame.Child(r1)).CRC);
                                     ((RvFile)mGame.Child(r)).FileStatusSet(FileStatus.CRCFromDAT);
                                     ((RvFile)mGame.Child(r)).Status = "(CRCFound)";
                                 }
                                 else
                                 {
-                                    ((RvFile)romofGame.Child(r1)).CRC =ArrByte.Copy( ((RvFile)mGame.Child(r)).CRC);
+                                    ((RvFile)romofGame.Child(r1)).CRC = ArrByte.Copy(((RvFile)mGame.Child(r)).CRC);
                                     ((RvFile)romofGame.Child(r1)).FileStatusSet(FileStatus.CRCFromDAT);
                                     ((RvFile)romofGame.Child(r1)).Status = "(CRCFound)";
                                 }
@@ -304,7 +367,10 @@ namespace ROMVault2.DatReaders
                                 found = true;
                                 break;
                             }
-                            if (found) break;
+                            if (found)
+                            {
+                                break;
+                            }
                         }
                     }
                 }
@@ -325,10 +391,15 @@ namespace ROMVault2.DatReaders
 
                 List<RvDir> lstParentGames = new List<RvDir>();
                 FindParentSet(mGame, tDat, ref lstParentGames);
-                while (lstParentGames.Count > 0 && lstParentGames[lstParentGames.Count - 1].Game.GetData(RvGame.GameData.IsBios).ToLower() == "yes")
+                while ((lstParentGames.Count > 0) && (lstParentGames[lstParentGames.Count - 1].Game.GetData(RvGame.GameData.IsBios).ToLower() == "yes"))
+                {
                     lstParentGames.RemoveAt(lstParentGames.Count - 1);
+                }
 
-                if (lstParentGames.Count <= 0) continue;
+                if (lstParentGames.Count <= 0)
+                {
+                    continue;
+                }
 
                 RvDir romofGame = lstParentGames[lstParentGames.Count - 1];
 
@@ -341,13 +412,13 @@ namespace ROMVault2.DatReaders
                     for (int r1 = 0; r1 < romofGame.ChildCount; r1++)
                     {
                         if (
-                            (name == romofGame.Child(r1).Name.ToLower() || mergename == romofGame.Child(r1).Name.ToLower()) &&
-                             (ArrByte.iCompare(((RvFile)mGame.Child(r)).CRC, ((RvFile)romofGame.Child(r1)).CRC) != 0 ||
-                             ((RvFile)mGame.Child(r)).Size != ((RvFile)romofGame.Child(r1)).Size)
-                             
-                           )
+                            ((name == romofGame.Child(r1).Name.ToLower()) || (mergename == romofGame.Child(r1).Name.ToLower())) &&
+                            ((ArrByte.iCompare(((RvFile)mGame.Child(r)).CRC, ((RvFile)romofGame.Child(r1)).CRC) != 0) ||
+                             (((RvFile)mGame.Child(r)).Size != ((RvFile)romofGame.Child(r1)).Size))
+                        )
+                        {
                             founderror = true;
-
+                        }
                     }
                 }
                 if (founderror)
@@ -364,21 +435,20 @@ namespace ROMVault2.DatReaders
                     bool found = false;
                     for (int r1 = 0; r1 < romofGame.ChildCount; r1++)
                     {
-                        if ((name == romofGame.Child(r1).Name.ToLower() || mergename == romofGame.Child(r1).Name.ToLower()) &&
-                            (ArrByte.iCompare(((RvFile)mGame.Child(r)).CRC, ((RvFile)romofGame.Child(r1)).CRC) == 0 &&
-                             ((RvFile)mGame.Child(r)).Size == ((RvFile)romofGame.Child(r1)).Size))
+                        if (((name == romofGame.Child(r1).Name.ToLower()) || (mergename == romofGame.Child(r1).Name.ToLower())) && (ArrByte.iCompare(((RvFile)mGame.Child(r)).CRC, ((RvFile)romofGame.Child(r1)).CRC) == 0) && (((RvFile)mGame.Child(r)).Size == ((RvFile)romofGame.Child(r1)).Size))
                         {
                             found = true;
                             break;
                         }
                     }
                     if (!found)
+                    {
                         romofGame.ChildAdd(mGame.Child(r));
+                    }
                 }
                 tDat.ChildRemove(g);
             }
         }
-
 
 
         private static void DatSetCheckCollect(RvDir tDat)
@@ -391,7 +461,9 @@ namespace ROMVault2.DatReaders
                 RvDir mGame = (RvDir)tDat.Child(g);
 
                 if (mGame.Game == null)
+                {
                     DatSetCheckCollect(mGame);
+                }
                 else
                 {
                     List<RvDir> lstParentGames = new List<RvDir>();
@@ -400,7 +472,9 @@ namespace ROMVault2.DatReaders
                     if (lstParentGames.Count == 0)
                     {
                         for (int r = 0; r < mGame.ChildCount; r++)
+                        {
                             RomCheckCollect((RvFile)mGame.Child(r), false);
+                        }
                     }
                     else
                     {
@@ -411,39 +485,66 @@ namespace ROMVault2.DatReaders
                             {
                                 for (int r1 = 0; r1 < romofGame.ChildCount; r1++)
                                 {
-                                    if (mGame.Child(r).Name.ToLower() != romofGame.Child(r1).Name.ToLower()) continue;
+                                   // if (mGame.Child(r).Name.ToLower() != romofGame.Child(r1).Name.ToLower())
+                                   // {
+                                   //     continue;
+                                   // }
 
                                     ulong? Size0 = ((RvFile)mGame.Child(r)).Size;
                                     ulong? Size1 = ((RvFile)romofGame.Child(r1)).Size;
-                                    if (Size0 != null && Size1 != null && Size0 != Size1) continue;
+                                    if ((Size0 != null) && (Size1 != null) && (Size0 != Size1))
+                                    {
+                                        continue;
+                                    }
 
                                     byte[] CRC0 = ((RvFile)mGame.Child(r)).CRC;
                                     byte[] CRC1 = ((RvFile)romofGame.Child(r1)).CRC;
-                                    if (CRC0 != null && CRC1 != null && !ArrByte.bCompare(CRC0, CRC1)) continue;
+                                    if ((CRC0 != null) && (CRC1 != null) && !ArrByte.bCompare(CRC0, CRC1))
+                                    {
+                                        continue;
+                                    }
 
                                     byte[] SHA0 = ((RvFile)mGame.Child(r)).SHA1;
                                     byte[] SHA1 = ((RvFile)romofGame.Child(r1)).SHA1;
-                                    if (SHA0 != null && SHA1 != null && !ArrByte.bCompare(SHA0, SHA1)) continue;
+                                    if ((SHA0 != null) && (SHA1 != null) && !ArrByte.bCompare(SHA0, SHA1))
+                                    {
+                                        continue;
+                                    }
 
                                     byte[] MD50 = ((RvFile)mGame.Child(r)).MD5;
                                     byte[] MD51 = ((RvFile)romofGame.Child(r1)).MD5;
-                                    if (MD50 != null && MD51 != null && !ArrByte.bCompare(MD50, MD51)) continue;
+                                    if ((MD50 != null) && (MD51 != null) && !ArrByte.bCompare(MD50, MD51))
+                                    {
+                                        continue;
+                                    }
 
                                     byte[] chdSHA0 = ((RvFile)mGame.Child(r)).SHA1CHD;
                                     byte[] chdSHA1 = ((RvFile)romofGame.Child(r1)).SHA1CHD;
-                                    if (chdSHA0 != null && chdSHA1 != null && !ArrByte.bCompare(chdSHA0, chdSHA1)) continue;
+                                    if ((chdSHA0 != null) && (chdSHA1 != null) && !ArrByte.bCompare(chdSHA0, chdSHA1))
+                                    {
+                                        continue;
+                                    }
 
                                     byte[] chdMD50 = ((RvFile)mGame.Child(r)).MD5CHD;
                                     byte[] chdMD51 = ((RvFile)romofGame.Child(r1)).MD5CHD;
-                                    if (chdMD50 != null && chdMD51 != null && !ArrByte.bCompare(chdMD50, chdMD51)) continue;
+                                    if ((chdMD50 != null) && (chdMD51 != null) && !ArrByte.bCompare(chdMD50, chdMD51))
+                                    {
+                                        continue;
+                                    }
 
                                     // don't merge if only one of the ROM is nodump
-                                    if ((((RvFile)romofGame.Child(r1)).Status == "nodump") != (((RvFile)mGame.Child(r)).Status == "nodump")) continue;
+                                    if (((RvFile)romofGame.Child(r1)).Status == "nodump" != (((RvFile)mGame.Child(r)).Status == "nodump"))
+                                    {
+                                        continue;
+                                    }
 
                                     found = true;
                                     break;
                                 }
-                                if (found) break;
+                                if (found)
+                                {
+                                    break;
+                                }
                             }
                             RomCheckCollect((RvFile)mGame.Child(r), found);
                         }
@@ -451,19 +552,25 @@ namespace ROMVault2.DatReaders
                 }
             }
         }
+
         private static void FindParentSet(RvDir searchGame, RvDir parentDir, ref List<RvDir> lstParentGames)
         {
             if (searchGame.Game == null)
+            {
                 return;
+            }
 
             string parentName = searchGame.Game.GetData(RvGame.GameData.RomOf);
-            if (String.IsNullOrEmpty(parentName) || parentName == searchGame.Name)
+            if (string.IsNullOrEmpty(parentName) || (parentName == searchGame.Name))
+            {
                 parentName = searchGame.Game.GetData(RvGame.GameData.CloneOf);
-            if (String.IsNullOrEmpty(parentName) || parentName == searchGame.Name)
+            }
+            if (string.IsNullOrEmpty(parentName) || (parentName == searchGame.Name))
+            {
                 return;
+            }
 
-            int intIndex;
-            int intResult = parentDir.ChildNameSearch(new RvDir(searchGame.FileType) { Name = parentName }, out intIndex);
+            int intResult = parentDir.ChildNameSearch(new RvDir(searchGame.FileType) { Name = parentName }, out int intIndex);
             if (intResult == 0)
             {
                 RvDir parentGame = (RvDir)parentDir.Child(intIndex);
@@ -485,14 +592,18 @@ namespace ROMVault2.DatReaders
             if (merge)
             {
                 if (string.IsNullOrEmpty(tRom.Merge))
+                {
                     tRom.Merge = "(Auto Merged)";
+                }
 
                 tRom.DatStatus = DatStatus.InDatMerged;
                 return;
             }
 
             if (!string.IsNullOrEmpty(tRom.Merge))
+            {
                 tRom.Merge = "(No-Merge) " + tRom.Merge;
+            }
 
             if (tRom.Status == "nodump")
             {
@@ -500,7 +611,7 @@ namespace ROMVault2.DatReaders
                 return;
             }
 
-            if (ArrByte.bCompare(tRom.CRC, new byte[] { 0, 0, 0, 0 }) && tRom.Size == 0)
+            if (ArrByte.bCompare(tRom.CRC, new byte[] { 0, 0, 0, 0 }) && (tRom.Size == 0))
             {
                 tRom.DatStatus = DatStatus.InDatCollect;
                 return;
@@ -523,7 +634,9 @@ namespace ROMVault2.DatReaders
             for (int g = 0; g < tDat.ChildCount; g++)
             {
                 if (tDat.Child(g).FileType == FileType.Zip)
+                {
                     continue;
+                }
 
                 RvDir datGame = (RvDir)tDat.Child(g);
 
@@ -534,11 +647,15 @@ namespace ROMVault2.DatReaders
                     fixNeeded = datGame.Child(r).Name.Contains("/");
 
                     if (fixNeeded)
+                    {
                         break;
+                    }
                 }
                 // if nothing needs done skip to next game
                 if (!fixNeeded)
+                {
                     continue;
+                }
 
 
                 RvDir fixedGame = new RvDir(FileType.Dir);
@@ -558,30 +675,35 @@ namespace ROMVault2.DatReaders
                                 int dirIndex = tFile.Name.IndexOf("/", StringComparison.Ordinal);
                                 string dirName = tFile.Name.Substring(0, dirIndex);
                                 RvDir tDir = new RvDir(FileType.Dir)
-                                               {
-                                                   Name = dirName,
-                                                   DatStatus = DatStatus.InDatCollect,
-                                                   Dat = datGame.Dat
-                                               };
-                                int index;
-                                if (tBase.ChildNameSearch(tDir, out index) != 0)
+                                {
+                                    Name = dirName,
+                                    DatStatus = DatStatus.InDatCollect,
+                                    Dat = datGame.Dat
+                                };
+                                if (tBase.ChildNameSearch(tDir, out int index) != 0)
+                                {
                                     tBase.ChildAdd(tDir, index);
+                                }
                                 tBase = (RvDir)tBase.Child(index);
                                 tFile.Name = tFile.Name.Substring(tFile.Name.IndexOf("/", StringComparison.Ordinal) + 1);
                             }
                             tBase.ChildAdd(tFile);
                         }
                         else
+                        {
                             fixedGame.ChildAdd(nextChild);
+                        }
                     }
                     else
+                    {
                         fixedGame.ChildAdd(nextChild);
-
-
+                    }
                 }
 
                 for (int r = 0; r < fixedGame.ChildCount; r++)
+                {
                     datGame.ChildAdd(fixedGame.Child(r), r);
+                }
             }
         }
 
@@ -589,19 +711,27 @@ namespace ROMVault2.DatReaders
         private static void DatSetRemoveGameDir(RvDir newDir)
         {
             if (newDir.ChildCount != 1)
+            {
                 return;
+            }
 
             RvDir child = newDir.Child(0) as RvDir;
             if (child.FileType != FileType.Dir)
+            {
                 return;
+            }
 
             if (child.Game == null)
+            {
                 return;
+            }
 
             newDir.ChildRemove(0);
             newDir.Game = child.Game;
             for (int i = 0; i < child.ChildCount; i++)
+            {
                 newDir.ChildAdd(child.Child(i), i);
+            }
         }
     }
 }

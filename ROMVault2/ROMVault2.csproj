@@ -9,8 +9,8 @@
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ROMVault2</RootNamespace>
-    <AssemblyName>ROMVault227</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <AssemblyName>ROMVault263</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -35,7 +35,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\..\RomVault\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;UNMANAGED;COMPRESS;LZMA_STREAM;DOTNET20</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -46,7 +46,7 @@
     <PlatformTarget>x86</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\Stage\</OutputPath>
+    <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -54,8 +54,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\..\Stage\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;UNMANAGED;COMPRESS;LZMA_STREAM;DOTNET20</DefineConstants>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
     <CodeAnalysisLogFile>..\..\Stage2\ROMVault2.exe.CodeAnalysisLog.xml</CodeAnalysisLogFile>
@@ -67,10 +67,11 @@
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisRuleDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
-    <OutputPath>..\..\..\RomVault\</OutputPath>
-    <DefineConstants>TRACE;UNMANAGED;COMPRESS;LZMA_STREAM;DOTNET20</DefineConstants>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;UNMANAGED;COMPRESS;LZMA_STREAM;DOTNET20;sevenzip</DefineConstants>
     <Optimize>true</Optimize>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -82,6 +83,7 @@
     <CodeAnalysisRuleSetDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\\Rule Sets</CodeAnalysisRuleSetDirectories>
     <CodeAnalysisRuleDirectories>;C:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>chip.ico</ApplicationIcon>
@@ -97,7 +99,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DatMaker.cs" />
+    <Compile Include="EmulatorInfo.cs" />
     <Compile Include="Report.cs" />
+    <Compile Include="rvImages1.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>rvImages1.resx</DependentUpon>
+    </Compile>
     <Compile Include="SupportedFiles\CHD\CHD.cs" />
     <Compile Include="DatReaders\DatDOSReader.cs" />
     <Compile Include="FindFixes.cs" />
@@ -118,12 +126,6 @@
     <Compile Include="rvTreeRow.cs" />
     <Compile Include="rvImages.cs" />
     <Compile Include="SupportedFiles\Files\UnCompFiles.cs" />
-    <Compile Include="SupportedFiles\ZipEnums.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\Crc32.cs" />
-    <Compile Include="ThreadReaders\ThreadCRC.cs" />
-    <Compile Include="ThreadReaders\ThreadLoadBuffer.cs" />
-    <Compile Include="ThreadReaders\ThreadMD5.cs" />
-    <Compile Include="ThreadReaders\ThreadSHA1.cs" />
     <Compile Include="Utils\ArrByte.cs" />
     <Compile Include="BackGroundWorkerInterface.cs" />
     <Compile Include="DatReaders\DatCmpReader.cs" />
@@ -175,12 +177,6 @@
       <DependentUpon>FrmSplashScreen.cs</DependentUpon>
     </Compile>
     <Compile Include="ReportError.cs" />
-    <Compile Include="rvImages1.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>rvImages1.resx</DependentUpon>
-    </Compile>
-    <Compile Include="IO\RVIO.cs" />
     <Compile Include="rvTree.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -203,19 +199,6 @@
     <Compile Include="Utils\RelativePath.cs" />
     <Compile Include="Utils\ULong.cs" />
     <Compile Include="Utils\VarFix.cs" />
-    <Compile Include="IO\Win32Native.cs" />
-    <Compile Include="SupportedFiles\Zip\zipFile.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\Deflate.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\DeflateStream.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\GZipStream.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\Inflate.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\InfTree.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\Tree.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\Zlib.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\ZlibBaseStream.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\ZlibCodec.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\ZlibConstants.cs" />
-    <Compile Include="SupportedFiles\Zip\ZLib\ZlibStream.cs" />
     <EmbeddedResource Include="FrmHelpAbout.resx">
       <DependentUpon>FrmHelpAbout.cs</DependentUpon>
     </EmbeddedResource>
@@ -254,12 +237,13 @@
     </Compile>
     <EmbeddedResource Include="rvImages1.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>rvImages1.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
+      <LastGenOutput>rvImages1.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="rvTree.resx">
       <DependentUpon>rvTree.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="app.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -293,13 +277,31 @@
     </Content>
     <Content Include="chip.ico" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\Compress\Compress.csproj">
+      <Project>{c30ee098-15d3-40d8-90f6-465d924d9987}</Project>
+      <Name>Compress</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RVIO\RVIO.csproj">
+      <Project>{ff8a7a0a-6319-49e0-a6e6-df3754bffdd1}</Project>
+      <Name>RVIO</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
-  <Target Name="AfterBuild">
+    -->
+  <Target Name="AfterBuild" Condition=" '$(Configuration)' == 'Release' ">
+    <CreateItem Include="@(ReferenceCopyLocalPaths)" Condition="'%(Extension)'=='.dll'">
+      <Output ItemName="AssembliesToMerge" TaskParameter="Include" />
+    </CreateItem>
+    <PropertyGroup>
+      <ReferenceAssemblies>C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5</ReferenceAssemblies>
+    </PropertyGroup>
+    <Message Importance="high" Text="Executing ILMerge...with target platform from $(ReferenceAssemblies)" />
+    <Exec Command="&quot;C:\Program Files (x86)\Microsoft\ILMerge\ILMerge.exe&quot; /out:@(MainAssembly) /internalize /targetplatform:v4,&quot;$(ReferenceAssemblies)&quot; &quot;@(IntermediateAssembly)&quot; @(AssembliesToMerge->'&quot;%(FullPath)&quot;', ' ')" />
+    <Delete Files="@(ReferenceCopyLocalPaths->'$(OutDir)%(DestinationSubDirectory)%(Filename)%(Extension)')" />
   </Target>
-  -->
 </Project>

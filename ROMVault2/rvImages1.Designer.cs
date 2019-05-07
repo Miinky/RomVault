@@ -623,6 +623,66 @@ namespace ROMVault2 {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap SevenZipDirCorrect {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipDirCorrect", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SevenZipDirInToSort {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipDirInToSort", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SevenZipDirMissing {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipDirMissing", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SevenZipDirUnknown {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipDirUnknown", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SevenZipT7Z {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipT7Z", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap SevenZipTZ {
+            get {
+                object obj = ResourceManager.GetObject("SevenZipTZ", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap TickBoxDisabled {
             get {
                 object obj = ResourceManager.GetObject("TickBoxDisabled", resourceCulture);

@@ -112,12 +112,12 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="DirDirMissing" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAG4AAABuCAYAAADGWyb7AAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
@@ -3943,6 +3943,73 @@
         nLykBJ8NRp2jJv5mPHf+umMSS6mMED2MvJ2d/fUsay6twX2XO6OjRzNu/ThcvnBBc0gjlhLZpZO+S6L8
         cTnGfqPZOErkg6KHkc/xku4SUm6lUCAVEHk+kvEbxhNxMUKc1bInmHtOyXxU9DDDX0gqHlWwpGQJUw5P
         IUcaetUc8oP371U6nyz6nzS9bqK2d+it6n8ouG2wjb8BTTQT5ox8KvEAAAAASUVORK5CYII=
+</value>
+  </data>
+  <data name="SevenZipDirCorrect" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAACwAAAAiCAIAAACr7KwmAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAAD0SURBVFhH7c5B
+        isMwFERB3//SmdCUoT9JBmsxIgyunV9LyMftOz2283CzbOThZtnIw82ykYebJaRFLl/mWrOEtMjly1xr
+        lpAWuXyZa80SUkifOXf/xJafeMu5kCr6fseJkJolpA8cCimkDT/hREgn9a9/whxSMbwwhxRSs4Q02UKa
+        bJMtpJPaLCFNtpAm22QL6aQ2S0iTLaTJVgwhFUOzhDTZQppsJzWkydYsIU22kCbbSQ1psjVLSJMtpMkW
+        UkgvzM0S0mQLabJd+4MnJ5olpEUu/3rdiZCaJaRFLv+rn9jDw82ykYebZSMPN8tGHr59leP4AW3JHVRr
+        4eaQAAAAAElFTkSuQmCC
+</value>
+  </data>
+  <data name="SevenZipDirInToSort" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAACwAAAAiCAIAAACr7KwmAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAAD0SURBVFhH7c5B
+        isMwFERB3//SmdCUoT9JBmsxIgyunV9LyMftOz2283CzbOThZtnIw82ykYebJaRFLl/mWrOEtMjly1xr
+        lpAWuXyZa80SUkifOXf/xJafeMu5kCr6fseJkJolpA8cCimkDT/hREgn9a9/whxSMbwwhxRSs4Q02UKa
+        bJMtpJPaLCFNtpAm22QL6aQ2S0iTLaTJVgwhFUOzhDTZQppsJzWkydYsIU22kCbbSQ1psjVLSJMtpMkW
+        UkgvzM0S0mQLabJd+4MnJ5olpEUu/3rdiZCaJaRFLv+rn9jDw82ykYebZSMPN8tGHr59leP4AW3JHVRr
+        4eaQAAAAAElFTkSuQmCC
+</value>
+  </data>
+  <data name="SevenZipDirMissing" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAACwAAAAiCAIAAACr7KwmAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAAClSURBVFhH7c5R
+        DoJAEARR738HzqpJ+4gQUFgTVtSpP6pnQ12GE1ARI4+Ia3f8uCK+IoJqxOPdeFYRLRHUc9xVRJeIVdwF
+        aiJ9r+EiUO9FOApUoDpEuAjUCHt0hDlQEwwLzIEKVFOELVBzbHNsgRph/yLCEKgJhkMj2EDNsf14BBWo
+        BeaDInwHag0XTRGbePzyuYtAVcRWRB/8uCJOG/FBKuLOMNwAfKnfVphC680AAAAASUVORK5CYII=
+</value>
+  </data>
+  <data name="SevenZipDirUnknown" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAACwAAAAiCAIAAACr7KwmAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAAD0SURBVFhH7c5B
+        isMwFERB3//SmdCUoT9JBmsxIgyunV9LyMftOz2283CzbOThZtnIw82ykYebJaRFLl/mWrOEtMjly1xr
+        lpAWuXyZa80SUkifOXf/xJafeMu5kCr6fseJkJolpA8cCimkDT/hREgn9a9/whxSMbwwhxRSs4Q02UKa
+        bJMtpJPaLCFNtpAm22QL6aQ2S0iTLaTJVgwhFUOzhDTZQppsJzWkydYsIU22kCbbSQ1psjVLSJMtpMkW
+        UkgvzM0S0mQLabJd+4MnJ5olpEUu/3rdiZCaJaRFLv+rn9jDw82ykYebZSMPN8tGHr59leP4AW3JHVRr
+        4eaQAAAAAElFTkSuQmCC
+</value>
+  </data>
+  <data name="SevenZipT7Z" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAADoAAAAiCAIAAACBXF2JAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wgAADsIBFShKgAAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAAFNSURBVFhH7c5B
+        bgQhEEPR2eUiuf8Vk2j4sr6qADVZsZgnrzBN+/Xx0f1cjIlGcyUmGs2VmGg0V2Ki0Rz6+v5PTjHRaA6V
+        HQ9ziolGc6jseJhTTDSat/J6T0wPV57fLJhoNG95d5WYHq48v1kw0Wje8u4qMT1ceX6zYKLRNPt/pF3F
+        +mFOeoyJRtNMv4+009j03IclxkSjaabfR9oeW1Xl3DEmGk0z/T7Sllip/rKyusNEo2mm30dax0o1MrW5
+        wESjaVZPDGkdK9XI1OYCE42mWT0xpHWsVCPdvmWi0TSbV/6kdaxUI8WmGphoNM3+obSOlWqk2FQDE42m
+        2T+U1rFSjdjq3JhoNM3+rbSOlWokpocdE42m2T+X9ihRzh1jotE00+8j7VGinDvGRKNppt9H2qNEOXeM
+        iUZzJSYazZWYaDRXYqLRXImJHx/xev0CPD3VwEQPrdwAAAAASUVORK5CYII=
+</value>
+  </data>
+  <data name="SevenZipTZ" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAAD4AAAAiCAIAAACIt/3zAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wQAADsEBuJFr7QAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMkMEa+wAAAFpSURBVFhH7Y5B
+        igMxEANz24/s/7+YDUg0hdoe7MzFC1PokFG1g14PD9/x/id4LrE5Hs8lNsfjucTmeDyX2Nzg5/eb7OK5
+        xOYGsWkxu3gusblBbFrMLp5LbG6wNWj9MvBcYnODWrMyaP0y8Fxic4NaszJo/TLwXCJR/1gp4lOw1O+L
+        kF5W00M8l0jEG4Uq6AezkGHPMkI8l0jEG4Uq6AfDkJmKniGeSyTilI9DCZb63UNCfTJjduO5RKKfsgk7
+        /IyQUMqQiwPPJRL9mk3Y4WeEhFKGXBx4LpGI63g/tIU+IySU0rm2nksk+KxSrHxGSCgluFDCc4kEXypB
+        ld2qiZBQSnChhOcSiXjT/6KamYqQUAqZ9cRziUQ86/9SzUxFSCilGJYdzyUS8bL/UTUztZsieoZ4LpHo
+        p7Mmyg/Vb6WIniGeSyT66ayJ8kP1WymiZ4jnEpvj8VxiczyeS2yOx3OJzfF47sPDFq/XH85cyUlsAqgX
+        AAAAAElFTkSuQmCC
 </value>
   </data>
 </root>

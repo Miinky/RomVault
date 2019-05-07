@@ -11,9 +11,11 @@ namespace ROMVault2.Utils
 {
     public static class VarFix
     {
+        private const string ValidHexChar = "0123456789abcdef";
+
         public static bool StringYesNo(string b)
         {
-            return b != null && ((b.ToLower() == "yes") || (b.ToLower() == "true"));
+            return (b != null) && ((b.ToLower() == "yes") || (b.ToLower() == "true"));
         }
 
         public static ulong? ULong(XmlNode n)
@@ -24,14 +26,18 @@ namespace ROMVault2.Utils
         public static ulong? ULong(string n)
         {
             if (string.IsNullOrEmpty(n))
+            {
                 return null;
+            }
 
             if (n == "-")
+            {
                 return null;
+            }
 
             try
             {
-                if (n.Length >= 2 && n.Substring(0, 2).ToLower() == "0x")
+                if ((n.Length >= 2) && (n.Substring(0, 2).ToLower() == "0x"))
                 {
                     return Convert.ToUInt64(n.Substring(2), 16);
                 }
@@ -48,29 +54,37 @@ namespace ROMVault2.Utils
         {
             return String(n == null ? "" : n.InnerText);
         }
+
         public static string String(string n)
         {
             return n ?? "";
         }
 
-
-        private const string ValidHexChar = "0123456789abcdef";
         private static string CleanCheck(string crc, int length)
         {
             string retcrc = crc ?? "";
             retcrc = retcrc.ToLower().Trim();
 
-            if (retcrc.Length >= 2 && retcrc.Substring(0, 2).ToLower() == "0x")
+            if ((retcrc.Length >= 2) && (retcrc.Substring(0, 2).ToLower() == "0x"))
+            {
                 retcrc = retcrc.Substring(2);
+            }
 
-            if (retcrc == "-") retcrc="00000000";
+            if (retcrc == "-")
+            {
+                retcrc = "00000000";
+            }
 
             for (int i = 0; i < retcrc.Length; i++)
+            {
                 if (ValidHexChar.IndexOf(retcrc.Substring(i, 1), StringComparison.Ordinal) < 0)
+                {
                     return "";
+                }
+            }
 
 
-            retcrc = (new String('0', length)) + retcrc;
+            retcrc = new string('0', length) + retcrc;
             retcrc = retcrc.Substring(retcrc.Length - length);
 
             return retcrc;
@@ -82,20 +96,34 @@ namespace ROMVault2.Utils
         {
             return CleanMD5SHA1(n == null ? null : n.InnerText, length);
         }
+
         public static byte[] CleanMD5SHA1(string checksum, int length)
         {
-            if (string.IsNullOrEmpty(checksum)) return null;
+            if (string.IsNullOrEmpty(checksum))
+            {
+                return null;
+            }
 
             checksum = checksum.ToLower().Trim();
 
             if (checksum.Length >= 2)
+            {
                 if (checksum.Substring(0, 2) == "0x")
+                {
                     checksum = checksum.Substring(2);
+                }
+            }
 
 
-            if (string.IsNullOrEmpty(checksum)) return null;
+            if (string.IsNullOrEmpty(checksum))
+            {
+                return null;
+            }
 
-            if (checksum == "-") return null;
+            if (checksum == "-")
+            {
+                return null;
+            }
 
             //if (checksum.Length % 2 == 1)
             //    checksum = "0" + checksum;
@@ -104,13 +132,17 @@ namespace ROMVault2.Utils
             //    return null;
 
             while (checksum.Length < length)
+            {
                 checksum = "0" + checksum;
+            }
 
-            int retL = checksum.Length / 2;
+            int retL = checksum.Length/2;
             byte[] retB = new byte[retL];
 
             for (int i = 0; i < retL; i++)
-                retB[i] = Convert.ToByte(checksum.Substring(i * 2, 2), 16);
+            {
+                retB[i] = Convert.ToByte(checksum.Substring(i*2, 2), 16);
+            }
 
             return retB;
         }
@@ -120,22 +152,30 @@ namespace ROMVault2.Utils
         {
             return CleanFullFileName(n == null ? "" : n.InnerText);
         }
+
         public static string CleanFullFileName(string name)
         {
-            if (System.String.IsNullOrEmpty(name)) return "";
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
 
             string retName = name;
             retName = retName.TrimStart();
-            retName = retName.TrimEnd(new []{ '.', ' ' });
+            retName = retName.TrimEnd('.', ' ');
 
             char[] charName = retName.ToCharArray();
             for (int i = 0; i < charName.Length; i++)
             {
                 int c = charName[i];
-                if (c == ':' || c == '*' || c == '?' || c == '<' || c == '>' || c == '|' || c < 32)
+                if ((c == ':') || (c == '*') || (c == '?') || (c == '<') || (c == '>') || (c == '|') || (c < 32))
+                {
                     charName[i] = '-';
+                }
                 else if (c == '\\')
+                {
                     charName[i] = '/';
+                }
             }
             return new string(charName);
         }
@@ -144,19 +184,25 @@ namespace ROMVault2.Utils
         {
             return CleanFileName(n == null ? "" : n.InnerText);
         }
-        public static string CleanFileName(string name,char crep='-')
+
+        public static string CleanFileName(string name, char crep = '-')
         {
-            if (System.String.IsNullOrEmpty(name)) return "";
+            if (string.IsNullOrEmpty(name))
+            {
+                return "";
+            }
             string retName = name;
             retName = retName.TrimStart();
-            retName = retName.TrimEnd(new[] { '.', ' ' });
+            retName = retName.TrimEnd('.', ' ');
 
             char[] charName = retName.ToCharArray();
             for (int i = 0; i < charName.Length; i++)
             {
                 int c = charName[i];
-                if (c == ':' || c == '*' || c == '?' || c == '<' || c == '>' || c == '|' || c == '\\' || c == '/' || c < 32)
+                if ((c == ':') || (c == '*') || (c == '?') || (c == '<') || (c == '>') || (c == '|') || (c == '\\') || (c == '/') || (c < 32))
+                {
                     charName[i] = crep;
+                }
             }
             return new string(charName);
         }
@@ -165,6 +211,7 @@ namespace ROMVault2.Utils
         {
             return ToLower(n == null ? "" : n.InnerText);
         }
+
         public static string ToLower(string name)
         {
             return name == null ? "" : name.ToLower();
@@ -173,11 +220,16 @@ namespace ROMVault2.Utils
 
         public static string PCombine(string path1, string path2)
         {
-            if (System.String.IsNullOrEmpty(path1)) return path2;
-            if (System.String.IsNullOrEmpty(path2)) return path1;
+            if (string.IsNullOrEmpty(path1))
+            {
+                return path2;
+            }
+            if (string.IsNullOrEmpty(path2))
+            {
+                return path1;
+            }
 
             return path1 + "/" + path2;
         }
-
     }
 }

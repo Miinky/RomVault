@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using ROMVault2.Properties;
+using ROMVault2.Utils;
 
 namespace ROMVault2
 {
@@ -34,17 +35,20 @@ namespace ROMVault2
         private void FrmConfigLoad(object sender, EventArgs e)
         {
             lblDATRoot.Text = Program.rvSettings.DatRoot;
-            cboScanLevel.SelectedIndex = (int)Program.rvSettings.ScanLevel;
-            cboFixLevel.SelectedIndex = (int)Program.rvSettings.FixLevel;
+            cboScanLevel.SelectedIndex = (int) Program.rvSettings.ScanLevel;
+            cboFixLevel.SelectedIndex = (int) Program.rvSettings.FixLevel;
 
             textBox1.Text = "";
             for (int i = 0; i < Program.rvSettings.IgnoreFiles.Count; i++)
+            {
                 textBox1.Text += Program.rvSettings.IgnoreFiles[i] + Environment.NewLine;
+            }
 
             chkDoubleCheckDelete.Checked = Program.rvSettings.DoubleCheckDelete;
             chkCacheSaveTimer.Checked = Program.rvSettings.CacheSaveTimerEnabled;
             upTime.Value = Program.rvSettings.CacheSaveTimePeriod;
             chkDebugLogs.Checked = Program.rvSettings.DebugLogsEnabled;
+            chkRV7z.Checked = Program.rvSettings.ConvertToRV7Z;
         }
 
         private void BtnCancelClick(object sender, EventArgs e)
@@ -55,8 +59,8 @@ namespace ROMVault2
         private void BtnOkClick(object sender, EventArgs e)
         {
             Program.rvSettings.DatRoot = lblDATRoot.Text;
-            Program.rvSettings.ScanLevel = (eScanLevel)cboScanLevel.SelectedIndex;
-            Program.rvSettings.FixLevel = (eFixLevel)cboFixLevel.SelectedIndex;
+            Program.rvSettings.ScanLevel = (eScanLevel) cboScanLevel.SelectedIndex;
+            Program.rvSettings.FixLevel = (eFixLevel) cboFixLevel.SelectedIndex;
 
             string strtxt = textBox1.Text;
             strtxt = strtxt.Replace("\r", "");
@@ -76,7 +80,8 @@ namespace ROMVault2
             Program.rvSettings.DoubleCheckDelete = chkDoubleCheckDelete.Checked;
             Program.rvSettings.DebugLogsEnabled = chkDebugLogs.Checked;
             Program.rvSettings.CacheSaveTimerEnabled = chkCacheSaveTimer.Checked;
-            Program.rvSettings.CacheSaveTimePeriod = (int)upTime.Value;
+            Program.rvSettings.CacheSaveTimePeriod = (int) upTime.Value;
+            Program.rvSettings.ConvertToRV7Z = chkRV7z.Checked;
 
             Program.rvSettings.WriteConfig();
             Close();
@@ -85,17 +90,19 @@ namespace ROMVault2
         private void BtnDatClick(object sender, EventArgs e)
         {
             FolderBrowserDialog browse = new FolderBrowserDialog
-                                             {
-                                                 ShowNewFolderButton = true,
-                                                 Description = Resources.FrmSettings_BtnDatClick_Please_select_a_folder_for_DAT_Root,
-                                                 RootFolder = Environment.SpecialFolder.MyComputer,
-                                                 SelectedPath = Program.rvSettings.DatRoot
-                                             };
+            {
+                ShowNewFolderButton = true,
+                Description = Resources.FrmSettings_BtnDatClick_Please_select_a_folder_for_DAT_Root,
+                RootFolder = Environment.SpecialFolder.MyComputer,
+                SelectedPath = Program.rvSettings.DatRoot
+            };
 
-            if (browse.ShowDialog() != DialogResult.OK) return;
+            if (browse.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
 
-            lblDATRoot.Text = Utils.RelativePath.MakeRelative(AppDomain.CurrentDomain.BaseDirectory, browse.SelectedPath);
+            lblDATRoot.Text = RelativePath.MakeRelative(AppDomain.CurrentDomain.BaseDirectory, browse.SelectedPath);
         }
-
     }
 }

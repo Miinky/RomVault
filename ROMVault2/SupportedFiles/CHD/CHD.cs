@@ -8,37 +8,73 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using ROMVault2.IO;
-using File = System.IO.File;
-using Path = System.IO.Path;
+using System.Text.RegularExpressions;
+using RVIO;
+using File = RVIO.File;
+using FileInfo = RVIO.FileInfo;
+using FileStream = RVIO.FileStream;
+using Path = RVIO.Path;
 
 namespace ROMVault2.SupportedFiles.CHD
 {
     public static class CHD
     {
+        public enum CHDManCheck
+        {
+            Unset,
+            Good,
+            Corrupt,
+            CHDNotFound,
+            ChdmanNotFound,
+            CHDUnknownError,
+            CHDReturnError
+        }
+
         private const int MaxHeader = 124;
 
-        public static int CheckFile(IO.FileInfo ofile, out byte[] SHA1CHD, out byte[] MD5CHD, out uint? version)
-        {
+        private static string _result;
+        private static BackgroundWorker _bgw;
+        private static CHDManCheck _resultType;
 
+        /*
+        chdman - MAME Compressed Hunks of Data (CHD) manager 0.147 (Sep 18 2012)
+        Raw SHA1 verification successful!
+        Overall SHA1 verification successful!
+        */
+
+        private static int _outputLineCount;
+
+        private static int _errorLines;
+
+        public static int CheckFile(FileInfo ofile, out byte[] SHA1CHD, out byte[] MD5CHD, out uint? version)
+        {
             SHA1CHD = null;
             MD5CHD = null;
             version = null;
 
-            string ext = IO.Path.GetExtension(ofile.Name).ToLower();
+            string ext = Path.GetExtension(ofile.Name).ToLower();
             if (ext != ".chd")
+            {
                 return 0;
+            }
 
-            
+
             if (ofile.Length < MaxHeader)
+            {
                 return 0;
+            }
 
 
             Stream s;
-            int retval = IO.FileStream.OpenFileRead(ofile.FullName, out s);
+            int retval = FileStream.OpenFileRead(ofile.FullName, out s);
             if (retval != 0)
+            {
                 return retval;
-            if (s == null) return 1;
+            }
+            if (s == null)
+            {
+                return 1;
+            }
 
             CheckFile(s, out SHA1CHD, out MD5CHD, out version);
 
@@ -49,7 +85,7 @@ namespace ROMVault2.SupportedFiles.CHD
         }
 
 
-        private static void CheckFile(Stream s, out  byte[] SHA1CHD, out  byte[] MD5CHD, out uint? version)
+        private static void CheckFile(Stream s, out byte[] SHA1CHD, out byte[] MD5CHD, out uint? version)
         {
             using (BinaryReader br = new BinaryReader(s))
             {
@@ -61,30 +97,36 @@ namespace ROMVault2.SupportedFiles.CHD
 
         private static void CheckFile(byte[] buff, out byte[] SHA1CHD, out byte[] MD5CHD, out uint? version)
         {
-
             SHA1CHD = null;
             MD5CHD = null;
             version = null;
-            UInt32 compression = 0;
+            uint compression = 0;
 
-            byte[] header = new[] { (byte)'M', (byte)'C', (byte)'o', (byte)'m', (byte)'p', (byte)'r', (byte)'H', (byte)'D' };
+            byte[] header = {(byte) 'M', (byte) 'C', (byte) 'o', (byte) 'm', (byte) 'p', (byte) 'r', (byte) 'H', (byte) 'D'};
 
             for (int i = 0; i < header.Length; i++)
             {
                 if (buff[i] != header[i])
+                {
                     return;
+                }
             }
 
-            UInt32 length = ReadUInt32(buff, 8);
+            uint length = ReadUInt32(buff, 8);
             version = ReadUInt32(buff, 12);
 
             if (version > 5)
+            {
                 return;
+            }
 
             switch (version)
             {
                 case 1:
-                    if (length != 76) return;
+                    if (length != 76)
+                    {
+                        return;
+                    }
 
                     //    V1 header:
                     //    [  0] char   tag[8];        // 'MComprHD'
@@ -93,7 +135,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     //    [ 16] UINT32 flags;         // flags (see below)
                     //    [ 20] UINT32 compression;   // compression type
                     compression = ReadUInt32(buff, 20);
-                    if (compression == 0) return;
+                    if (compression == 0)
+                    {
+                        return;
+                    }
 
                     //    [ 24] UINT32 hunksize;      // 512-byte sectors per hunk
                     //    [ 28] UINT32 totalhunks;    // total # of hunks represented
@@ -108,7 +153,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     return;
 
                 case 2:
-                    if (length != 80) return;
+                    if (length != 80)
+                    {
+                        return;
+                    }
 
                     //    V2 header:
                     //    [  0] char   tag[8];        // 'MComprHD'
@@ -117,7 +165,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     //    [ 16] UINT32 flags;         // flags (see below)
                     //    [ 20] UINT32 compression;   // compression type
                     compression = ReadUInt32(buff, 20);
-                    if (compression == 0) return;
+                    if (compression == 0)
+                    {
+                        return;
+                    }
 
                     //    [ 24] UINT32 hunksize;      // seclen-byte sectors per hunk
                     //    [ 28] UINT32 totalhunks;    // total # of hunks represented
@@ -132,7 +183,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     return;
 
                 case 3:
-                    if (length != 120) return;
+                    if (length != 120)
+                    {
+                        return;
+                    }
 
                     //    V3 header:
                     //    [  0] char   tag[8];        // 'MComprHD'
@@ -141,7 +195,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     //    [ 16] UINT32 flags;         // flags (see below)
                     //    [ 20] UINT32 compression;   // compression type
                     compression = ReadUInt32(buff, 20);
-                    if (compression == 0) return;
+                    if (compression == 0)
+                    {
+                        return;
+                    }
                     //    [ 24] UINT32 totalhunks;    // total # of hunks represented
                     //    [ 28] UINT64 logicalbytes;  // logical size of the data (in bytes)
                     //    [ 36] UINT64 metaoffset;    // offset to the first blob of metadata
@@ -156,7 +213,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     return;
 
                 case 4:
-                    if (length != 108) return;
+                    if (length != 108)
+                    {
+                        return;
+                    }
 
                     //    V4 header:
                     //    [  0] char   tag[8];        // 'MComprHD'
@@ -165,7 +225,10 @@ namespace ROMVault2.SupportedFiles.CHD
                     //    [ 16] UINT32 flags;         // flags (see below)
                     //    [ 20] UINT32 compression;   // compression type
                     compression = ReadUInt32(buff, 20);
-                    if (compression == 0) return;
+                    if (compression == 0)
+                    {
+                        return;
+                    }
                     //    [ 24] UINT32 totalhunks;    // total # of hunks represented
                     //    [ 28] UINT64 logicalbytes;  // logical size of the data (in bytes)
                     //    [ 36] UINT64 metaoffset;    // offset to the first blob of metadata
@@ -178,18 +241,24 @@ namespace ROMVault2.SupportedFiles.CHD
                     return;
 
                 case 5:
-                    if (length != 124) return;
+                    if (length != 124)
+                    {
+                        return;
+                    }
 
                     //    V5 header:
                     //    [  0] char   tag[8];        // 'MComprHD'
                     //    [  8] UINT32 length;        // length of header (including tag and length fields)
                     //    [ 12] UINT32 version;       // drive format version
                     //    [ 16] UINT32 compressors[4];// which custom compressors are used?
-                    UInt32 compression0 = ReadUInt32(buff, 16);
-                    UInt32 compression1 = ReadUInt32(buff, 20);
-                    UInt32 compression2 = ReadUInt32(buff, 24);
-                    UInt32 compression3 = ReadUInt32(buff, 28);
-                    if (compression0 == 0 && compression1 == 0 && compression2 == 0 && compression3 == 0) return;
+                    uint compression0 = ReadUInt32(buff, 16);
+                    uint compression1 = ReadUInt32(buff, 20);
+                    uint compression2 = ReadUInt32(buff, 24);
+                    uint compression3 = ReadUInt32(buff, 28);
+                    if ((compression0 == 0) && (compression1 == 0) && (compression2 == 0) && (compression3 == 0))
+                    {
+                        return;
+                    }
                     //    [ 32] UINT64 logicalbytes;  // logical size of the data (in bytes)
                     //    [ 40] UINT64 mapoffset;     // offset to the map
                     //    [ 48] UINT64 metaoffset;    // offset to the first blob of metadata
@@ -205,38 +274,24 @@ namespace ROMVault2.SupportedFiles.CHD
         }
 
 
-        private static UInt32 ReadUInt32(byte[] b, int p)
+        private static uint ReadUInt32(byte[] b, int p)
         {
             return
-                ((UInt32)b[p + 0]) << 24 |
-                ((UInt32)b[p + 1]) << 16 |
-                ((UInt32)b[p + 2]) << 8 |
-                (b[p + 3]);
+                ((uint) b[p + 0] << 24) |
+                ((uint) b[p + 1] << 16) |
+                ((uint) b[p + 2] << 8) |
+                b[p + 3];
         }
 
         private static byte[] ReadBytes(byte[] b, int p, int length)
         {
             byte[] ret = new byte[length];
             for (int i = 0; i < length; i++)
+            {
                 ret[i] = b[p + i];
+            }
             return ret;
         }
-
-        private static string _result;
-        private static BackgroundWorker _bgw;
-        private static CHDManCheck _resultType;
-
-        public enum CHDManCheck
-        {
-            Unset,
-            Good,
-            Corrupt,
-            CHDNotFound,
-            ChdmanNotFound,
-            CHDUnknownError,
-            CHDReturnError
-        }
-
 
 
         public static CHDManCheck ChdmanCheck(string filename, BackgroundWorker bgw, out string result)
@@ -247,7 +302,9 @@ namespace ROMVault2.SupportedFiles.CHD
 
             string chdExe = "chdman.exe";
             if (Program.rvSettings.IsUnix)
+            {
                 chdExe = "chdman";
+            }
 
             string chdPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, chdExe);
             if (!File.Exists(chdPath))
@@ -256,7 +313,7 @@ namespace ROMVault2.SupportedFiles.CHD
                 return CHDManCheck.ChdmanNotFound;
             }
 
-            if (!IO.File.Exists(filename))
+            if (!File.Exists(filename))
             {
                 result = filename + " Not Found.";
                 return CHDManCheck.CHDNotFound;
@@ -289,7 +346,7 @@ namespace ROMVault2.SupportedFiles.CHD
                 exeProcess.ErrorDataReceived += CHDErrorHandler;
 
                 _outputLineCount = 0;
-                _errorLines=0;
+                _errorLines = 0;
 
                 ReportError.LogOut("CHD: Scanning Starting");
                 exeProcess.Start();
@@ -301,13 +358,14 @@ namespace ROMVault2.SupportedFiles.CHD
                 // Wait for the process finish.
                 exeProcess.WaitForExit();
                 ReportError.LogOut("CHD: Scanning Finished");
-
             }
 
             result = _result;
 
             if (_resultType == CHDManCheck.Unset)
+            {
                 _resultType = CHDManCheck.Good;
+            }
 
             _bgw.ReportProgress(0, new bgwText3(""));
 
@@ -316,25 +374,20 @@ namespace ROMVault2.SupportedFiles.CHD
             return _resultType;
         }
 
-        /*
-        chdman - MAME Compressed Hunks of Data (CHD) manager 0.147 (Sep 18 2012)
-        Raw SHA1 verification successful!
-        Overall SHA1 verification successful!
-        */
-
-        private static int _outputLineCount;
-
         private static void CHDOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
             // Collect the process command output.
-            if (String.IsNullOrEmpty(outLine.Data)) return;
+            if (string.IsNullOrEmpty(outLine.Data))
+            {
+                return;
+            }
 
             string sOut = outLine.Data;
             //ReportError.LogOut("CHDOutput: " + _outputLineCount + " : " + sOut);
             switch (_outputLineCount)
             {
                 case 0:
-                    if (!System.Text.RegularExpressions.Regex.IsMatch(sOut, @"^chdman - MAME Compressed Hunks of Data \(CHD\) manager ([0-9\.]+) \(.*\)")) 
+                    if (!Regex.IsMatch(sOut, @"^chdman - MAME Compressed Hunks of Data \(CHD\) manager ([0-9\.]+) \(.*\)"))
                     {
                         _result = "Incorrect startup of CHDMan :" + sOut;
                         _resultType = CHDManCheck.CHDReturnError;
@@ -363,60 +416,63 @@ namespace ROMVault2.SupportedFiles.CHD
             _outputLineCount++;
         }
 
-        private static int _errorLines;
-
         private static void CHDErrorHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
             // Collect the process command output.
-            if (String.IsNullOrEmpty(outLine.Data)) return;
+            if (string.IsNullOrEmpty(outLine.Data))
+            {
+                return;
+            }
 
             // We can get fed multiple lines worth of data because of \r line feeds
-            string[] sLines = outLine.Data.Split(new string[] { "\r" }, StringSplitOptions.None);
+            string[] sLines = outLine.Data.Split(new[] {"\r"}, StringSplitOptions.None);
 
-            foreach (string sLine in sLines) {
-
-                if (string.IsNullOrEmpty(sLine)) continue;
+            foreach (string sLine in sLines)
+            {
+                if (string.IsNullOrEmpty(sLine))
+                {
+                    continue;
+                }
 
                 ReportError.LogOut("CHDError: " + sLine);
                 _bgw.ReportProgress(0, new bgwText3(sLine));
- 
+
                 if (_resultType != CHDManCheck.Unset)
                 {
-                    if (_errorLines>0)
+                    if (_errorLines > 0)
                     {
                         _errorLines -= 1;
                         _result += "\r\n" + sLine;
                     }
                 }
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"^No verification to be done; CHD has (uncompressed|no checksum)"))
-                {
-                    _result = sLine;
-                    _resultType = CHDManCheck.Corrupt;
-                } 
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"^Error (opening|reading) CHD file.*")) 
-                {
-                     _result = sLine;
-                    _resultType = CHDManCheck.Corrupt;
-                }
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"^Error opening parent CHD file .*:")) 
+                else if (Regex.IsMatch(sLine, @"^No verification to be done; CHD has (uncompressed|no checksum)"))
                 {
                     _result = sLine;
                     _resultType = CHDManCheck.Corrupt;
                 }
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"^Error: (Raw|Overall) SHA1 in header"))
+                else if (Regex.IsMatch(sLine, @"^Error (opening|reading) CHD file.*"))
                 {
                     _result = sLine;
                     _resultType = CHDManCheck.Corrupt;
                 }
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"^Out of memory"))
+                else if (Regex.IsMatch(sLine, @"^Error opening parent CHD file .*:"))
+                {
+                    _result = sLine;
+                    _resultType = CHDManCheck.Corrupt;
+                }
+                else if (Regex.IsMatch(sLine, @"^Error: (Raw|Overall) SHA1 in header"))
+                {
+                    _result = sLine;
+                    _resultType = CHDManCheck.Corrupt;
+                }
+                else if (Regex.IsMatch(sLine, @"^Out of memory"))
                 {
                     _result = sLine;
                     _resultType = CHDManCheck.Corrupt;
                 }
                 // Verifying messages are a non-error
-                else if (System.Text.RegularExpressions.Regex.IsMatch(sLine, @"Verifying, \d+\.\d+\% complete\.\.\."))
+                else if (Regex.IsMatch(sLine, @"Verifying, \d+\.\d+\% complete\.\.\."))
                 {
-
                 }
                 else
                 {
@@ -425,7 +481,5 @@ namespace ROMVault2.SupportedFiles.CHD
                 }
             }
         }
-
-
     }
 }

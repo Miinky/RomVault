@@ -14,11 +14,10 @@ namespace ROMVault2
 {
     public partial class FrmSetDir : Form
     {
-        private string _datLocation;
-
         private readonly Color _cMagenta = Color.FromArgb(255, 214, 255);
         private readonly Color _cGreen = Color.FromArgb(214, 255, 214);
         private readonly Color _cYellow = Color.FromArgb(255, 255, 214);
+        private string _datLocation;
 
         public FrmSetDir()
         {
@@ -35,8 +34,10 @@ namespace ROMVault2
 
         private void UpdateGrid()
         {
-            if (Program.rvSettings.IsMono && DataGridGames.RowCount > 0)
-                DataGridGames.CurrentCell = DataGridGames[0,0];
+            if (Program.rvSettings.IsMono && (DataGridGames.RowCount > 0))
+            {
+                DataGridGames.CurrentCell = DataGridGames[0, 0];
+            }
 
             DataGridGames.Rows.Clear();
             foreach (DirMap t in Program.rvSettings.DirPathMap)
@@ -77,12 +78,12 @@ namespace ROMVault2
         private void BtnSetRomLocationClick(object sender, EventArgs e)
         {
             FolderBrowserDialog browse = new FolderBrowserDialog
-                                             {
-                                                 ShowNewFolderButton = true,
-                                                 Description = Resources.FrmSetDir_BtnSetRomLocationClick_Please_select_a_folder_for_This_Rom_Set,
-                                                 RootFolder =  Environment.SpecialFolder.MyComputer,
-                                                 SelectedPath = DBHelper.GetRealPath(_datLocation)
-                                             };
+            {
+                ShowNewFolderButton = true,
+                Description = Resources.FrmSetDir_BtnSetRomLocationClick_Please_select_a_folder_for_This_Rom_Set,
+                RootFolder = Environment.SpecialFolder.MyComputer,
+                SelectedPath = DBHelper.GetRealPath(_datLocation)
+            };
             if (browse.ShowDialog() == DialogResult.OK)
             {
                 for (int i = 0; i < Program.rvSettings.DirPathMap.Count; i++)
@@ -112,10 +113,10 @@ namespace ROMVault2
             {
                 string datLocation = DataGridGames.SelectedRows[j].Cells["CDAT"].Value.ToString();
 
-                if (datLocation == "ToSort" || datLocation == "RomVault")
+                if ((datLocation == "ToSort") || (datLocation == "RomVault"))
                 {
                     ReportError.Show(Resources.FrmSetDir_BtnDeleteSelectedClick_You_cannot_delete_the + datLocation + Resources.FrmSetDir_BtnDeleteSelectedClick_Directory_Settings,
-                                    Resources.FrmSetDir_BtnDeleteSelectedClick_RomVault_Rom_Location);
+                        Resources.FrmSetDir_BtnDeleteSelectedClick_RomVault_Rom_Location);
                 }
                 else
                 {
@@ -142,7 +143,10 @@ namespace ROMVault2
 
         private void DataGridGamesDoubleClick(object sender, EventArgs e)
         {
-            if (DataGridGames.SelectedRows.Count <= 0) return;
+            if (DataGridGames.SelectedRows.Count <= 0)
+            {
+                return;
+            }
 
             grpBoxAddNew.Text = Resources.FrmSetDir_DataGridGamesDoubleClick_Edit_Existing_Directory_Mapping;
             SetLocation(DataGridGames.SelectedRows[0].Cells["CDAT"].Value.ToString());
@@ -150,7 +154,6 @@ namespace ROMVault2
 
         private void FrmSetDirActivated(object sender, EventArgs e)
         {
-
             for (int j = 0; j < DataGridGames.Rows.Count; j++)
             {
                 DataGridGames.Rows[j].Selected = false;
@@ -163,8 +166,5 @@ namespace ROMVault2
             Program.rvSettings.WriteConfig();
             UpdateGrid();
         }
-
-
-
     }
 }

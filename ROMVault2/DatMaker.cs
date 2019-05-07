@@ -5,8 +5,10 @@
  ******************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using ROMVault2.RvDB;
+using ROMVault2.Utils;
 
 namespace ROMVault2
 {
@@ -30,16 +32,23 @@ namespace ROMVault2
             Console.WriteLine("Dat creation complete");
         }
 
-    private static void WriteDatFile(RvDir dir, bool CHDsAreDisk)
+        private static void WriteDatFile(RvDir dir, bool CHDsAreDisk)
         {
             WriteLine("<?xml version=\"1.0\"?>");
             WriteLine("");
             WriteLine("<datafile>");
-            WriteHeader(CHDsAreDisk ? "CHDs as disk - if you see lots of status=nodump, try the other way" : 
+            WriteHeader(CHDsAreDisk ? "CHDs as disk - if you see lots of status=nodump, try the other way" :
                 "CHD as rom - if you see lots of empty double-quotes, try the other way");
 
             /* write Games/Dirs */
-            if (CHDsAreDisk) ProcessDir(dir); else PlainProcessDir(dir);
+            if (CHDsAreDisk)
+            {
+                ProcessDir(dir);
+            }
+            else
+            {
+                PlainProcessDir(dir);
+            }
 
             WriteLine("</datafile>");
         }
@@ -70,13 +79,24 @@ namespace ROMVault2
 
         private static bool hasChdGrandChildren(RvDir aDir)
         {
-            if (aDir == null) return false;
+            if (aDir == null)
+            {
+                return false;
+            }
             for (int i = 0; i < aDir.ChildCount; i++)
             {
                 RvDir item = aDir.Child(i) as RvDir;
-                if (item == null) continue;
-                else for (int j = 0; j < item.ChildCount; j++)
-                        if (item.Child(j).Name.ToLower().EndsWith(".chd")) return true;
+                if (item == null)
+                {
+                    continue;
+                }
+                for (int j = 0; j < item.ChildCount; j++)
+                {
+                    if (item.Child(j).Name.ToLower().EndsWith(".chd"))
+                    {
+                        return true;
+                    }
+                }
             }
             return false;
         }
@@ -88,7 +108,7 @@ namespace ROMVault2
             for (int i = 0; i < dir.ChildCount; i++)
             {
                 RvDir item = dir.Child(i) as RvDir;
-                if (item != null && (item.FileType == FileType.Zip || item.FileType == FileType.Dir))
+                if ((item != null) && ((item.FileType == FileType.Zip) || (item.FileType == FileType.Dir)))
                 {
                     WriteLine(indent + "<game name=\"" + clean(item.Name) + "\">");
                     WriteLine(indent + "\t<description>" + clean(item.Game == null ? item.Name : item.Game.GetData(RvGame.GameData.Description)) + "</description>");
@@ -97,7 +117,9 @@ namespace ROMVault2
                     {
                         RvFile file = item.Child(j) as RvFile;
                         if (file != null)
-                            WriteLine(indent + "\t<rom name=\"" + clean(file.Name) + "\" size=\"" + file.Size + "\" crc=\"" + Utils.ArrByte.ToString(file.CRC) + "\" md5=\"" + Utils.ArrByte.ToString(file.MD5) + "\" sha1=\"" + Utils.ArrByte.ToString(file.SHA1) + "\"/>");
+                        {
+                            WriteLine(indent + "\t<rom name=\"" + clean(file.Name) + "\" size=\"" + file.Size + "\" crc=\"" + ArrByte.ToString(file.CRC) + "\" md5=\"" + ArrByte.ToString(file.MD5) + "\" sha1=\"" + ArrByte.ToString(file.SHA1) + "\"/>");
+                        }
                         RvDir aDir = item.Child(j) as RvDir;
                         if (aDir != null)
                         {
@@ -105,14 +127,14 @@ namespace ROMVault2
                             for (int k = 0; k < aDir.ChildCount; k++)
                             {
                                 RvFile subFile = aDir.Child(k) as RvFile;
-                                WriteLine(indent + "\t<rom name=\"" + dName + "\\" + clean(subFile.Name) + "\" size=\"" + subFile.Size + "\" crc=\"" + Utils.ArrByte.ToString(subFile.CRC) + "\" md5=\"" + Utils.ArrByte.ToString(subFile.MD5) + "\" sha1=\"" + Utils.ArrByte.ToString(subFile.SHA1) + "\"/>");
+                                WriteLine(indent + "\t<rom name=\"" + dName + "\\" + clean(subFile.Name) + "\" size=\"" + subFile.Size + "\" crc=\"" + ArrByte.ToString(subFile.CRC) + "\" md5=\"" + ArrByte.ToString(subFile.MD5) + "\" sha1=\"" + ArrByte.ToString(subFile.SHA1) + "\"/>");
                             }
                         }
                     }
                     WriteLine(indent + "</game>");
                 }
                 // only recurse when grandchildren are not CHDs
-                if (item != null && item.FileType == FileType.Dir && !hasChdGrandChildren(item))
+                if ((item != null) && (item.FileType == FileType.Dir) && !hasChdGrandChildren(item))
                 {
                     WriteLine(indent + "<dir name=\"" + clean(item.Name) + "\">");
                     PlainProcessDir(item, depth + 1);
@@ -132,53 +154,62 @@ namespace ROMVault2
                 for (int i = 0; i < dir.ChildCount; i++)
                 {
                     RvFile chd = dir.Child(i) as RvFile;
-                    if (chd != null && chd.FileType == FileType.File && chd.Name.EndsWith(".chd")) retVal++;
+                    if ((chd != null) && (chd.FileType == FileType.File) && chd.Name.EndsWith(".chd"))
+                    {
+                        retVal++;
+                    }
                 }
             }
             return retVal;
         }
 
         // writes a list of CHDs as a game when there are no ROMs in the game
-        private static void justCHDs(string indent, System.Collections.Generic.List<string> lst)
+        private static void justCHDs(string indent, List<string> lst)
         {
             WriteLine(indent + "<game name=\"" + clean(lst[0]) + "\">");
             WriteLine(indent + "\t<description>" + clean(lst[1]) + "</description>");
-            for (int j = 2; j < lst.Count; j++) WriteLine(lst[j]);
+            for (int j = 2; j < lst.Count; j++)
+            {
+                WriteLine(lst[j]);
+            }
             WriteLine(indent + "</game>");
         }
 
         // CHDs as disk
         private static void ProcessDir(RvDir dir, int depth = 1)
         {
-            string indent = new string('\t', depth);  // recursive indent
-            System.Collections.Generic.List<string> disks = new System.Collections.Generic.List<string>() { string.Empty };
+            string indent = new string('\t', depth); // recursive indent
+            List<string> disks = new List<string> {string.Empty};
 
             for (int i = 0; i < dir.ChildCount; i++)
             {
                 RvDir item = dir.Child(i) as RvDir;
-                if (item != null && item.FileType == FileType.Dir)
+                if ((item != null) && (item.FileType == FileType.Dir))
                 {
-                    if (disks.Count > 2 && item.Name != disks[0]) // flush the last one if there were only CHDs in it
+                    if ((disks.Count > 2) && (item.Name != disks[0])) // flush the last one if there were only CHDs in it
                     {
                         justCHDs(indent, disks);
                         disks.Clear();
                     }
-                // tabulate next disk list, if any
-                disks = new System.Collections.Generic.List<string>()
-                    { item.Name, item.Game == null ? item.Name : item.Game.GetData(RvGame.GameData.Description) };
-                for (int j = 0; j < item.ChildCount; j++)
+                    // tabulate next disk list, if any
+                    disks = new List<string> {item.Name, item.Game == null ? item.Name : item.Game.GetData(RvGame.GameData.Description)};
+                    for (int j = 0; j < item.ChildCount; j++)
                     {
                         RvFile chd = item.Child(j) as RvFile;
-                        if (chd != null && chd.FileType == FileType.File && chd.Name.EndsWith(".chd"))
+                        if ((chd != null) && (chd.FileType == FileType.File) && chd.Name.EndsWith(".chd"))
                         {
-                            if (!string.IsNullOrEmpty(Utils.ArrByte.ToString(chd.SHA1CHD)))
-                                disks.Add((indent + "\t<disk name=\"" + clean(chd.Name).Replace(".chd", "") + "\" sha1=\"" + Utils.ArrByte.ToString(chd.SHA1CHD) + "\"/>"));
+                            if (!string.IsNullOrEmpty(ArrByte.ToString(chd.SHA1CHD)))
+                            {
+                                disks.Add(indent + "\t<disk name=\"" + clean(chd.Name).Replace(".chd", "") + "\" sha1=\"" + ArrByte.ToString(chd.SHA1CHD) + "\"/>");
+                            }
                             else
-                                disks.Add((indent + "\t<disk name=\"" + clean(chd.Name).Replace(".chd", "") + "\" status=\"nodump\"/>"));
+                            {
+                                disks.Add(indent + "\t<disk name=\"" + clean(chd.Name).Replace(".chd", "") + "\" status=\"nodump\"/>");
+                            }
                         }
                     }
                 }
-                if (item != null && item.FileType == FileType.Zip)
+                if ((item != null) && (item.FileType == FileType.Zip))
                 {
                     WriteLine(indent + "<game name=\"" + clean(item.Name) + "\">");
                     string desc = item.Game == null ? item.Name : item.Game.GetData(RvGame.GameData.Description);
@@ -189,20 +220,23 @@ namespace ROMVault2
                         RvFile file = item.Child(j) as RvFile;
                         if (file != null)
                         {
-                            WriteLine(indent + "\t<rom name=\"" + clean(file.Name) + "\" size=\"" + file.Size + "\" crc=\"" + Utils.ArrByte.ToString(file.CRC) + "\" md5=\"" + Utils.ArrByte.ToString(file.MD5) + "\" sha1=\"" + Utils.ArrByte.ToString(file.SHA1) + "\"/>");
+                            WriteLine(indent + "\t<rom name=\"" + clean(file.Name) + "\" size=\"" + file.Size + "\" crc=\"" + ArrByte.ToString(file.CRC) + "\" md5=\"" + ArrByte.ToString(file.MD5) + "\" sha1=\"" + ArrByte.ToString(file.SHA1) + "\"/>");
                         }
                     }
 
                     if (disks.Count > 2) // take care of previous list of CHDs now
                     {
-                        for (int j = 2; j < disks.Count; j++) WriteLine(disks[j]);
+                        for (int j = 2; j < disks.Count; j++)
+                        {
+                            WriteLine(disks[j]);
+                        }
                         disks.Clear();
                     }
 
                     WriteLine(indent + "</game>");
                 }
-                
-                if (item != null && item.FileType == FileType.Dir)
+
+                if ((item != null) && (item.FileType == FileType.Dir))
                 {
                     if (numDisks(item) == 0) // only recurse when children are not CHDs
                     {
@@ -213,7 +247,10 @@ namespace ROMVault2
                 }
             }
             // check for one last CHDs-only game
-            if (disks.Count > 2) justCHDs(indent, disks);
+            if (disks.Count > 2)
+            {
+                justCHDs(indent, disks);
+            }
         }
     }
 }

@@ -16,11 +16,11 @@ namespace ROMVault2
 {
     public partial class FrmProgressWindowFix : Form
     {
-
-        private bool _bDone;
         private readonly Form _parentForm;
 
         private readonly Queue<DataGridViewRow> _rowQueue;
+
+        private bool _bDone;
 
         public FrmProgressWindowFix(Form parentForm)
         {
@@ -30,23 +30,6 @@ namespace ROMVault2
             timer1.Interval = 100;
             timer1.Enabled = true;
         }
-
-
-        private void Timer1Tick(object sender, EventArgs e)
-        {
-            int rowCount = _rowQueue.Count;
-            if (rowCount == 0)
-                return;
-
-            DataGridViewRow[] dgvr = new DataGridViewRow[rowCount];
-            for (int i = 0; i < rowCount; i++)
-                dgvr[i] = _rowQueue.Dequeue();
-
-            dataGridView1.Rows.AddRange(dgvr);
-            int iRow = dataGridView1.Rows.Count - 1;
-            dataGridView1.FirstDisplayedScrollingRowIndex = iRow;
-        }
-
 
 
         protected override CreateParams CreateParams
@@ -60,6 +43,25 @@ namespace ROMVault2
             }
         }
 
+
+        private void Timer1Tick(object sender, EventArgs e)
+        {
+            int rowCount = _rowQueue.Count;
+            if (rowCount == 0)
+            {
+                return;
+            }
+
+            DataGridViewRow[] dgvr = new DataGridViewRow[rowCount];
+            for (int i = 0; i < rowCount; i++)
+            {
+                dgvr[i] = _rowQueue.Dequeue();
+            }
+
+            dataGridView1.Rows.AddRange(dgvr);
+            int iRow = dataGridView1.Rows.Count - 1;
+            dataGridView1.FirstDisplayedScrollingRowIndex = iRow;
+        }
 
 
         private void FrmProgressWindowFixShown(object sender, EventArgs e)
@@ -77,16 +79,13 @@ namespace ROMVault2
 
         private void BgwProgressChanged(object e)
         {
-
-
             bgwShowFix bgwSf = e as bgwShowFix;
             if (bgwSf != null)
             {
-                DataGridViewRow dgrq = (DataGridViewRow)dataGridView1.RowTemplate.Clone();
+                DataGridViewRow dgrq = (DataGridViewRow) dataGridView1.RowTemplate.Clone();
                 dgrq.CreateCells(dataGridView1, bgwSf.FixDir, bgwSf.FixZip, bgwSf.FixFile, bgwSf.Size, bgwSf.Dir, bgwSf.SourceDir, bgwSf.SourceZip, bgwSf.SourceFile);
                 _rowQueue.Enqueue(dgrq);
                 return;
-
             }
 
             bgwShowFixError bgwSFE = e as bgwShowFixError;
@@ -102,8 +101,10 @@ namespace ROMVault2
             bgwProgress bgwProg = e as bgwProgress;
             if (bgwProg != null)
             {
-                if (bgwProg.Progress >= progressBar.Minimum && bgwProg.Progress <= progressBar.Maximum)
+                if ((bgwProg.Progress >= progressBar.Minimum) && (bgwProg.Progress <= progressBar.Maximum))
+                {
                     progressBar.Value = bgwProg.Progress;
+                }
                 UpdateStatusText();
                 return;
             }
@@ -122,13 +123,10 @@ namespace ROMVault2
                 progressBar.Value = 0;
                 UpdateStatusText();
             }
-
-
         }
 
         private void BgwRunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-
             cancelButton.Text = Resources.ProgressWindowFix_DoDone_Close;
             cancelButton.Enabled = true;
             _bDone = true;
@@ -137,15 +135,17 @@ namespace ROMVault2
         private void UpdateStatusText()
         {
             int range = progressBar.Maximum - progressBar.Minimum;
-            int percent = range > 0 ? (progressBar.Value * 100) / range : 0;
+            int percent = range > 0 ? progressBar.Value*100/range : 0;
 
-            Text = String.Format("Fixing Files - {0}% complete", percent);
+            Text = string.Format("Fixing Files - {0}% complete", percent);
         }
 
         private void CancelButtonClick(object sender, EventArgs e)
         {
             if (_bDone)
+            {
                 Close();
+            }
             else
             {
                 cancelButton.Enabled = false;
@@ -164,18 +164,24 @@ namespace ROMVault2
             switch (WindowState)
             {
                 case FormWindowState.Minimized:
-                    if (_parentForm.Visible) _parentForm.Hide();
+                    if (_parentForm.Visible)
+                    {
+                        _parentForm.Hide();
+                    }
                     return;
                 case FormWindowState.Maximized:
-                    if (!_parentForm.Visible) _parentForm.Show();
+                    if (!_parentForm.Visible)
+                    {
+                        _parentForm.Show();
+                    }
                     return;
                 case FormWindowState.Normal:
-                    if (!_parentForm.Visible) _parentForm.Show();
+                    if (!_parentForm.Visible)
+                    {
+                        _parentForm.Show();
+                    }
                     return;
             }
         }
-
-
-
     }
 }

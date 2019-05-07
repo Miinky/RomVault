@@ -20,28 +20,28 @@ namespace ROMVault2
 
         private void FrmKey_Load(object sender, EventArgs e)
         {
-            List<RepStatus> displayList= new List<RepStatus>
-                                             {
-                                                 RepStatus.Missing,
-                                                 RepStatus.Correct,
-                                                 RepStatus.NotCollected,
-                                                 RepStatus.UnNeeded,
-                                                 RepStatus.Unknown,
-                                                 RepStatus.InToSort,
-                                                 RepStatus.Corrupt,
-                                                 RepStatus.UnScanned,
-                                                 RepStatus.Ignore,
-                                                 RepStatus.CanBeFixed,
-                                                 RepStatus.MoveToSort,
-                                                 RepStatus.Delete,
-                                                 RepStatus.NeededForFix,
-                                             };
-            Height = displayList.Count * 44 + 32;
+            List<RepStatus> displayList = new List<RepStatus>
+            {
+                RepStatus.Missing,
+                RepStatus.Correct,
+                RepStatus.NotCollected,
+                RepStatus.UnNeeded,
+                RepStatus.Unknown,
+                RepStatus.InToSort,
+                RepStatus.Corrupt,
+                RepStatus.UnScanned,
+                RepStatus.Ignore,
+                RepStatus.CanBeFixed,
+                RepStatus.MoveToSort,
+                RepStatus.Delete,
+                RepStatus.NeededForFix
+            };
+            Height = displayList.Count*44 + 32;
             for (int i = 0; i < displayList.Count; i++)
             {
                 PictureBox pictureBox = new PictureBox();
                 pictureBox.BorderStyle = BorderStyle.FixedSingle;
-                pictureBox.Location = new Point(4, 4 + i * 44);
+                pictureBox.Location = new Point(4, 4 + i*44);
                 pictureBox.Name = "pictureBox" + i;
                 pictureBox.Size = new Size(48, 42);
                 pictureBox.TabIndex = 0;
@@ -55,13 +55,13 @@ namespace ROMVault2
                 Label label = new Label();
                 label.BackColor = SystemColors.Control;
                 label.BorderStyle = BorderStyle.FixedSingle;
-                label.Location = new Point(54, 4 + i * 44);
+                label.Location = new Point(54, 4 + i*44);
                 label.TextAlign = ContentAlignment.MiddleLeft;
                 label.Name = "label" + i;
                 label.Size = new Size(542, 42);
                 label.TabIndex = 0;
 
-                String text;
+                string text;
                 switch (displayList[i])
                 {
                     case RepStatus.Missing:

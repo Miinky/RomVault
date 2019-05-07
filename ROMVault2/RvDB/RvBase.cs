@@ -4,24 +4,47 @@
  *     Copyright 2014                                 *
  ******************************************************/
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using ROMVault2.Properties;
+using Path = RVIO.Path;
 
 namespace ROMVault2.RvDB
 {
-    public enum DatStatus { InDatCollect, InDatMerged, InDatBad, NotInDat, InToSort }
-    public enum GotStatus { NotGot, Got, Corrupt, FileLocked }
-    public enum FileType { Unknown, Dir, Zip, xSevenZip, xRAR, File, ZipFile, xSevenZipFile }
+    public enum DatStatus
+    {
+        InDatCollect,
+        InDatMerged,
+        InDatBad,
+        NotInDat,
+        InToSort
+    }
+
+    public enum GotStatus
+    {
+        NotGot,
+        Got,
+        Corrupt,
+        FileLocked
+    }
+
+    public enum FileType
+    {
+        Unknown,
+        Dir,
+        Zip,
+        SevenZip,
+        xRAR,
+        File,
+        ZipFile,
+        SevenZipFile
+    }
 
     public abstract class RvBase
     {
-        private readonly FileType _type;
-
-        public string Name;               // The Name of the File or Directory
-        public string FileName;           // Found filename if different from Name
-        public RvDir Parent;              // A link to the Parent Directory
+        public string Name; // The Name of the File or Directory
+        public string FileName; // Found filename if different from Name
+        public RvDir Parent; // A link to the Parent Directory
         public RvDat Dat;
         public long TimeStamp;
         public int ReportIndex;
@@ -34,12 +57,95 @@ namespace ROMVault2.RvDB
 
         protected RvBase(FileType type)
         {
-            _type = type;
+            FileType = type;
         }
 
-        public FileType FileType
+        public FileType FileType { get; }
+
+
+        private string Extention
         {
-            get { return _type; }
+            get
+            {
+                switch (FileType)
+                {
+                    case FileType.Zip:
+                        return ".zip";
+                    case FileType.SevenZip:
+                        return ".7z";
+                    //case FileType.RAR: return ".rar";
+                }
+                return "";
+            }
+        }
+
+        public string FullName => DBHelper.GetRealPath(TreeFullName);
+
+        public string DatFullName => DBHelper.GetDatPath(TreeFullName);
+
+        public string TreeFullName
+        {
+            get
+            {
+                if (Parent == null)
+                {
+                    return Name + Extention;
+                }
+                return Path.Combine(Parent.TreeFullName, Name + Extention);
+            }
+        }
+
+        public bool IsInToSort
+        {
+            get
+            {
+                string fullName = TreeFullName;
+                return fullName.Substring(0, 6) == "ToSort";
+            }
+        }
+
+        public DatStatus DatStatus
+        {
+            set
+            {
+                _datStatus = value;
+                RepStatusReset();
+            }
+            get { return _datStatus; }
+        }
+
+
+        public GotStatus GotStatus
+        {
+            get { return _gotStatus; }
+            set
+            {
+                _gotStatus = value;
+                RepStatusReset();
+            }
+        }
+
+
+        public RepStatus RepStatus
+        {
+            get { return _repStatus; }
+            set
+            {
+                Parent?.UpdateRepStatusUpTree(_repStatus, -1);
+
+                List<RepStatus> rs = RepairStatus.StatusCheck[(int) FileType, (int) _datStatus, (int) _gotStatus];
+                if ((rs == null) || !rs.Contains(value))
+                {
+                    ReportError.SendAndShow(FullName + " " + Resources.RvBase_Check + FileType + Resources.RvBase_Check + _datStatus + Resources.RvBase_Check + _gotStatus + " from: " + _repStatus + " to: " + value);
+                    _repStatus = RepStatus.Error;
+                }
+                else
+                {
+                    _repStatus = value;
+                }
+
+                Parent?.UpdateRepStatusUpTree(_repStatus, 1);
+            }
         }
 
         public virtual void Write(BinaryWriter bw)
@@ -59,9 +165,10 @@ namespace ROMVault2.RvDB
                 bw.Write(Dat.DatIndex);
             }
 
-            bw.Write((byte)_datStatus);
-            bw.Write((byte)_gotStatus);
+            bw.Write((byte) _datStatus);
+            bw.Write((byte) _gotStatus);
         }
+
         public virtual void Read(BinaryReader br, List<RvDat> parentDirDats)
         {
             Name = br.ReadString();
@@ -72,17 +179,21 @@ namespace ROMVault2.RvDB
             {
                 int index = br.ReadInt32();
                 if (index == -1)
+                {
                     ReportError.SendAndShow(Resources.RvBase_Read_Dat_found_without_an_index);
+                }
                 else
+                {
                     Dat = parentDirDats[index];
+                }
             }
             else
             {
                 Dat = null;
             }
 
-            _datStatus = (DatStatus)br.ReadByte();
-            _gotStatus = (GotStatus)br.ReadByte();
+            _datStatus = (DatStatus) br.ReadByte();
+            _gotStatus = (GotStatus) br.ReadByte();
             RepStatusReset();
         }
 
@@ -91,9 +202,11 @@ namespace ROMVault2.RvDB
         {
             Dat = null;
             if (GotStatus == GotStatus.NotGot)
+            {
                 return EFile.Delete;
+            }
 
-            if (!String.IsNullOrEmpty(FileName))
+            if (!string.IsNullOrEmpty(FileName))
             {
                 Name = FileName;
                 FileName = null;
@@ -101,12 +214,15 @@ namespace ROMVault2.RvDB
             DatStatus = DatStatus.NotInDat;
             return EFile.Keep;
         }
+
         public virtual void DatAdd(RvBase b)
         {
             // Parent , TimeStamp Should already be correct.
 
             if (GotStatus == GotStatus.NotGot)
+            {
                 ReportError.SendAndShow("Error Adding DAT to NotGot File " + b.GotStatus);
+            }
 
             SetStatus(b.DatStatus, GotStatus.Got);
 
@@ -128,7 +244,7 @@ namespace ROMVault2.RvDB
             TimeStamp = 0;
             FileName = null;
 
-            GotStatus = (Parent.GotStatus == GotStatus.FileLocked) ? GotStatus.FileLocked : GotStatus.NotGot;
+            GotStatus = Parent.GotStatus == GotStatus.FileLocked ? GotStatus.FileLocked : GotStatus.NotGot;
             switch (DatStatus)
             {
                 case DatStatus.InDatCollect:
@@ -144,20 +260,25 @@ namespace ROMVault2.RvDB
                     return EFile.Keep;
             }
         }
+
         public virtual void FileAdd(RvBase file)
         {
             TimeStamp = file.TimeStamp;
             FileCheckName(file);
             if (file.GotStatus == GotStatus.NotGot)
+            {
                 ReportError.SendAndShow("Error setting got to a NotGot File");
+            }
             GotStatus = file.GotStatus;
         }
 
         public void FileCheckName(RvBase file)
         {
             // Don't care about bad case if the file is not in a dat.
-            if (DatStatus == DatStatus.NotInDat || DatStatus == DatStatus.InToSort)
+            if ((DatStatus == DatStatus.NotInDat) || (DatStatus == DatStatus.InToSort))
+            {
                 Name = file.Name;
+            }
 
             FileName = Name == file.Name ? null : file.Name;
         }
@@ -175,46 +296,6 @@ namespace ROMVault2.RvDB
             c.RepStatus = RepStatus;
         }
 
-
-
-        private string Extention
-        {
-            get
-            {
-                switch (FileType)
-                {
-                    case FileType.Zip: return ".zip";
-                    //case FileType.SevenZip: return ".7z";
-                    //case FileType.RAR: return ".rar";
-                }
-                return "";
-            }
-        }
-        public string FullName
-        {
-            get { return DBHelper.GetRealPath(TreeFullName); }
-        }
-        public string DatFullName
-        {
-            get { return DBHelper.GetDatPath(TreeFullName); }
-        }
-        public string TreeFullName
-        {
-            get
-            {
-                if (Parent == null) return Name + Extention;
-                return IO.Path.Combine(Parent.TreeFullName, Name + Extention);
-            }
-        }
-        public bool IsInToSort
-        {
-            get
-            {
-                string fullName = TreeFullName;
-                return fullName.Substring(0, 6) == "ToSort";
-            }
-        }
-
         public string SuperDatFileName()
         {
             return SuperDatFileName(Dat);
@@ -224,43 +305,30 @@ namespace ROMVault2.RvDB
         {
             if (dat.AutoAddDirectory)
             {
-                if (Parent == null || Parent.Parent == null || Parent.Parent.Dat != dat) return Name;
+                if ((Parent?.Parent == null) || (Parent.Parent.Dat != dat))
+                {
+                    return Name;
+                }
             }
             else
             {
-                if (Parent == null || Parent.Dat != dat) return Name;
+                if ((Parent == null) || (Parent.Dat != dat))
+                {
+                    return Name;
+                }
             }
-            return IO.Path.Combine(Parent.SuperDatFileName(dat), Name);
+            return Path.Combine(Parent.SuperDatFileName(dat), Name);
         }
 
         public string FileNameInsideGame()
         {
             RvDir d = this as RvDir;
-            if (d != null && d.Game != null) return Name;
-
-            return IO.Path.Combine(Parent.FileNameInsideGame(), Name);
-        }
-
-        public DatStatus DatStatus
-        {
-            set
+            if (d?.Game != null)
             {
-                _datStatus = value;
-                RepStatusReset();
+                return Name;
             }
-            get { return _datStatus; }
-        }
 
-
-
-        public GotStatus GotStatus
-        {
-            get { return _gotStatus; }
-            set
-            {
-                _gotStatus = value;
-                RepStatusReset();
-            }
+            return Path.Combine(Parent.FileNameInsideGame(), Name);
         }
 
         public void SetStatus(DatStatus dt, GotStatus flag)
@@ -270,38 +338,22 @@ namespace ROMVault2.RvDB
             RepStatusReset();
         }
 
-
-        public RepStatus RepStatus
-        {
-            get { return _repStatus; }
-            set
-            {
-                if (Parent != null) Parent.UpdateRepStatusUpTree(_repStatus, -1);
-
-                List<RepStatus> rs = RepairStatus.StatusCheck[(int)FileType, (int)_datStatus, (int)_gotStatus];
-                if (rs == null || !rs.Contains(value))
-                {
-                    ReportError.SendAndShow(FullName + " " + Resources.RvBase_Check + FileType + Resources.RvBase_Check + _datStatus + Resources.RvBase_Check + _gotStatus + " from: " + _repStatus + " to: " + value);
-                    _repStatus = RepStatus.Error;
-                }
-                else
-                    _repStatus = value;
-
-                if (Parent != null) Parent.UpdateRepStatusUpTree(_repStatus, 1);
-            }
-        }
         public void RepStatusReset()
         {
             SearchFound = false;
-            if ((RepStatus == RepStatus.UnSet || RepStatus == RepStatus.Unknown || RepStatus == RepStatus.Ignore) && FileType == FileType.File && GotStatus == GotStatus.Got && DatStatus==DatStatus.NotInDat)
+            if (((RepStatus == RepStatus.UnSet) || (RepStatus == RepStatus.Unknown) || (RepStatus == RepStatus.Ignore)) && (FileType == FileType.File) && (GotStatus == GotStatus.Got) && (DatStatus == DatStatus.NotInDat))
+            {
                 foreach (string file in Program.rvSettings.IgnoreFiles)
+                {
                     if (Name == file)
                     {
                         RepStatus = RepStatus.Ignore;
                         return;
                     }
+                }
+            }
 
-            List<RepStatus> rs = RepairStatus.StatusCheck[(int)FileType, (int)_datStatus, (int)_gotStatus];
+            List<RepStatus> rs = RepairStatus.StatusCheck[(int) FileType, (int) _datStatus, (int) _gotStatus];
             RepStatus = rs == null ? RepStatus.Error : rs[0];
         }
     }

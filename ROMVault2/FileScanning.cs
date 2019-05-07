@@ -8,16 +8,16 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using ROMVault2.IO;
 using System.Threading;
+using Compress;
+using Compress.SevenZip;
+using Compress.ZipFile;
 using ROMVault2.Properties;
 using ROMVault2.RvDB;
-using ROMVault2.SupportedFiles;
 using ROMVault2.SupportedFiles.CHD;
 using ROMVault2.SupportedFiles.Files;
-using ROMVault2.SupportedFiles.Zip;
 using ROMVault2.Utils;
-using FileInfo = ROMVault2.IO.FileInfo;
+using RVIO;
 
 namespace ROMVault2
 {
@@ -32,7 +32,6 @@ namespace ROMVault2
 
         public static void ScanFiles(object sender, DoWorkEventArgs e)
         {
-
 #if !Debug
             try
             {
@@ -41,10 +40,15 @@ namespace ROMVault2
                 _cacheSaveTimer = new Stopwatch();
                 _cacheSaveTimer.Reset();
                 if (Program.rvSettings.CacheSaveTimerEnabled)
+                {
                     _cacheSaveTimer.Start();
+                }
 
                 _bgw = sender as BackgroundWorker;
-                if (_bgw == null) return;
+                if (_bgw == null)
+                {
+                    return;
+                }
 
                 Program.SyncCont = e.Argument as SynchronizationContext;
                 if (Program.SyncCont == null)
@@ -73,11 +77,18 @@ namespace ROMVault2
                     string lDir = lstDir[i].FullName;
                     Console.WriteLine(lDir);
                     if (Directory.Exists(lDir))
+                    {
                         CheckADir(lstDir[i], true);
+                    }
                     else
+                    {
                         MarkAsMissing(lstDir[i]);
+                    }
 
-                    if (_bgw.CancellationPending || _fileErrorAbort) break;
+                    if (_bgw.CancellationPending || _fileErrorAbort)
+                    {
+                        break;
+                    }
                 }
 
                 _bgw.ReportProgress(0, new bgwText("Updating Cache"));
@@ -94,17 +105,21 @@ namespace ROMVault2
             {
                 ReportError.UnhandledExceptionHandler(exc);
 
-                if (_bgw != null) _bgw.ReportProgress(0, new bgwText("Updating Cache"));
+                if (_bgw != null)
+                {
+                    _bgw.ReportProgress(0, new bgwText("Updating Cache"));
+                }
                 DB.Write();
-                if (_bgw != null) _bgw.ReportProgress(0, new bgwText("Complete"));
+                if (_bgw != null)
+                {
+                    _bgw.ReportProgress(0, new bgwText("Complete"));
+                }
 
                 _bgw = null;
                 Program.SyncCont = null;
-
             }
 #endif
         }
-
 
 
         private static void CheckADir(RvDir dbDir, bool report)
@@ -120,7 +135,9 @@ namespace ROMVault2
 
             string fullDir = dbDir.FullName;
             if (report)
+            {
                 _bgw.ReportProgress(0, new bgwText2(fullDir));
+            }
 
             DatStatus chechingDatStatus = dbDir.IsInToSort ? DatStatus.InToSort : DatStatus.NotInDat;
 
@@ -140,197 +157,226 @@ namespace ROMVault2
             switch (ft)
             {
                 case FileType.Zip:
+                case FileType.SevenZip:
+                {
+                    fileDir = new RvDir(ft);
+
+                    // open the zip file
+                    ICompress checkZ;
+                    if (ft == FileType.Zip)
                     {
-                        fileDir = new RvDir(ft);
-
-                        // open the zip file
-                        ZipFile checkZ = new ZipFile();
-
-                        ZipReturn zr = checkZ.ZipFileOpen(fullDir, dbDir.TimeStamp, true);
-
-                        if (zr == ZipReturn.ZipGood)
-                        {
-                            dbDir.ZipStatus = checkZ.ZipStatus;
-
-                            // to be Scanning a ZIP file means it is either new or has changed.
-                            // as the code below only calls back here if that is true.
-                            //
-                            // Level1: Only use header CRC's
-                            // Just get the CRC for the ZIP headers.
-                            //
-                            // Level2: Fully checksum changed only files
-                            // We know this file has been changed to do a full checksum scan.
-                            //
-                            // Level3: Fully checksum everything
-                            // So do a full checksum scan.
-                            if (EScanLevel == eScanLevel.Level2 || EScanLevel == eScanLevel.Level3)
-                                checkZ.DeepScan();
-
-                            // add all of the file information from the zip file into scanDir
-                            for (int i = 0; i < checkZ.LocalFilesCount(); i++)
-                            {
-                                RvFile tFile = new RvFile(DBTypeGet.FileFromDir(ft))
-                                                   {
-                                                       Name = checkZ.Filename(i),
-                                                       ZipFileIndex = i,
-                                                       ZipFileHeaderPosition = checkZ.LocalHeader(i),
-                                                       Size = checkZ.UncompressedSize(i),
-                                                       CRC = checkZ.CRC32(i)
-                                                   };
-                                // all 3 levels read the CRC from the ZIP header
-                                tFile.SetStatus(chechingDatStatus, GotStatus.Got);
-                                tFile.FileStatusSet(FileStatus.SizeFromHeader | FileStatus.CRCFromHeader);
-
-                                // if we are in level 2 or level 3 then do a full CheckSum Scan.
-                                if (EScanLevel == eScanLevel.Level2 || EScanLevel == eScanLevel.Level3)
-                                {
-                                    // DeepScan will return ZipReturn.ZipCRCDecodeError if the headers CRC and 
-                                    // the actual CRC do not match.
-                                    // So we just need to set the MD5 and SHA1 from the ZIP file.
-                                    zr = checkZ.FileStatus(i);
-                                    if (zr == ZipReturn.ZipUntested)
-                                    {
-                                        _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir + " : " + checkZ.Filename(i)));
-                                    }
-                                    else if (zr != ZipReturn.ZipGood)
-                                    {
-                                        _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir + " : " + checkZ.Filename(i)));
-                                        tFile.GotStatus = GotStatus.Corrupt;
-                                    }
-                                    else
-                                    {
-                                        tFile.MD5 = checkZ.MD5(i);
-                                        tFile.SHA1 = checkZ.SHA1(i);
-                                        tFile.FileStatusSet(FileStatus.SizeVerified | FileStatus.CRCVerified | FileStatus.SHA1Verified | FileStatus.MD5Verified);
-                                    }
-                                }
-
-                                fileDir.ChildAdd(tFile);
-                            }
-                        }
-                        else if (zr == ZipReturn.ZipFileLocked)
-                        {
-                            _bgw.ReportProgress(0, new bgwShowError(fullDir, "Zip File Locked"));
-                            dbDir.TimeStamp = 0;
-                            dbDir.GotStatus = GotStatus.FileLocked;
-                        }
-                        else
-                        {
-                            _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir));
-                            dbDir.GotStatus = GotStatus.Corrupt;
-                        }
-                        checkZ.ZipFileClose();
+                        checkZ = new ZipFile();
                     }
+                    else
+                    {
+                        checkZ = new SevenZ();
+                    }
+
+                    ZipReturn zr = checkZ.ZipFileOpen(fullDir, dbDir.TimeStamp, true);
+
+                    if (zr == ZipReturn.ZipGood)
+                    {
+                        dbDir.ZipStatus = checkZ.ZipStatus;
+
+                        // to be Scanning a ZIP file means it is either new or has changed.
+                        // as the code below only calls back here if that is true.
+                        //
+                        // Level1: Only use header CRC's
+                        // Just get the CRC for the ZIP headers.
+                        //
+                        // Level2: Fully checksum changed only files
+                        // We know this file has been changed to do a full checksum scan.
+                        //
+                        // Level3: Fully checksum everything
+                        // So do a full checksum scan.
+                        if ((EScanLevel == eScanLevel.Level2) || (EScanLevel == eScanLevel.Level3))
+                        {
+                            checkZ.DeepScan();
+                        }
+
+                        // add all of the file information from the zip file into scanDir
+                        for (int i = 0; i < checkZ.LocalFilesCount(); i++)
+                        {
+                            RvFile tFile = new RvFile(DBTypeGet.FileFromDir(ft))
+                            {
+                                Name = checkZ.Filename(i),
+                                ZipFileIndex = i,
+                                ZipFileHeaderPosition = checkZ.LocalHeader(i),
+                                Size = checkZ.UncompressedSize(i),
+                                CRC = checkZ.CRC32(i)
+                            };
+                            // all 3 levels read the CRC from the ZIP header
+                            tFile.SetStatus(chechingDatStatus, GotStatus.Got);
+                            tFile.FileStatusSet(FileStatus.SizeFromHeader | FileStatus.CRCFromHeader);
+
+                            // if we are in level 2 or level 3 then do a full CheckSum Scan.
+                            if ((EScanLevel == eScanLevel.Level2) || (EScanLevel == eScanLevel.Level3))
+                            {
+                                // DeepScan will return ZipReturn.ZipCRCDecodeError if the headers CRC and 
+                                // the actual CRC do not match.
+                                // So we just need to set the MD5 and SHA1 from the ZIP file.
+                                zr = checkZ.FileStatus(i);
+                                if (zr == ZipReturn.ZipUntested)
+                                {
+                                    _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir + " : " + checkZ.Filename(i)));
+                                }
+                                else if (zr != ZipReturn.ZipGood)
+                                {
+                                    _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir + " : " + checkZ.Filename(i)));
+                                    tFile.GotStatus = GotStatus.Corrupt;
+                                }
+                                else
+                                {
+                                    tFile.MD5 = checkZ.MD5(i);
+                                    tFile.SHA1 = checkZ.SHA1(i);
+                                    tFile.FileStatusSet(FileStatus.SizeVerified | FileStatus.CRCVerified | FileStatus.SHA1Verified | FileStatus.MD5Verified);
+                                }
+                            }
+
+                            fileDir.ChildAdd(tFile);
+                        }
+                    }
+                    else if (zr == ZipReturn.ZipFileLocked)
+                    {
+                        _bgw.ReportProgress(0, new bgwShowError(fullDir, "Zip File Locked"));
+                        dbDir.TimeStamp = 0;
+                        dbDir.GotStatus = GotStatus.FileLocked;
+                    }
+                    else
+                    {
+                        _bgw.ReportProgress(0, new bgwShowCorrupt(zr, fullDir));
+                        dbDir.GotStatus = GotStatus.Corrupt;
+                    }
+                    checkZ.ZipFileClose();
+                }
                     break;
 
                 case FileType.Dir:
+                {
+                    fileDir = new RvDir(FileType.Dir);
+
+
+                    DirectoryInfo oDir = new DirectoryInfo(fullDir);
+                    DirectoryInfo[] oDirs = oDir.GetDirectories();
+                    FileInfo[] oFiles = oDir.GetFiles();
+
+                    // add all the subdirectories into scanDir 
+                    foreach (DirectoryInfo dir in oDirs)
                     {
-                        fileDir = new RvDir(FileType.Dir);
-
-
-                        DirectoryInfo oDir = new DirectoryInfo(fullDir);
-                        DirectoryInfo[] oDirs = oDir.GetDirectories();
-                        FileInfo[] oFiles = oDir.GetFiles();
-
-                        // add all the subdirectories into scanDir 
-                        foreach (DirectoryInfo dir in oDirs)
+                        RvBase tDir = new RvDir(FileType.Dir)
                         {
-                            RvBase tDir = new RvDir(FileType.Dir)
-                                              {
-                                                  Name = dir.Name,
-                                                  TimeStamp = dir.LastWriteTime,
-                                              };
-                            tDir.SetStatus(chechingDatStatus, GotStatus.Got);
-                            fileDir.ChildAdd(tDir);
-                        }
+                            Name = dir.Name,
+                            TimeStamp = dir.LastWriteTime
+                        };
+                        tDir.SetStatus(chechingDatStatus, GotStatus.Got);
+                        fileDir.ChildAdd(tDir);
+                    }
 
-                        // add all the files into scanDir
-                        foreach (FileInfo oFile in oFiles)
+                    // add all the files into scanDir
+                    foreach (FileInfo oFile in oFiles)
+                    {
+                        // if we find any zip files add them as zip files.
+                        string fExt = Path.GetExtension(oFile.Name);
+                        switch (fExt.ToLower())
                         {
-                            // if we find any zip files add them as zip files.
-                            string fExt = Path.GetExtension(oFile.Name);
-                            switch (fExt.ToLower())
+                            case ".7z":
                             {
-                                case ".zip":
-                                    {
-                                        RvDir tGame = new RvDir(FileType.Zip)
-                                                          {
-                                                              Name = Path.GetFileNameWithoutExtension(oFile.Name),
-                                                              TimeStamp = oFile.LastWriteTime,
-                                                          };
-                                        tGame.SetStatus(chechingDatStatus, GotStatus.Got);
-                                        fileDir.ChildAdd(tGame);
-                                    }
-                                    break;
-                                default:
-                                    {
-                                        string fName = oFile.Name;
-                                        if (fName == "__RomVault.tmp")
-                                        {
-                                            File.Delete(oFile.FullName);
-                                            continue;
-                                        }
-
-                                        // Scanning a file
-                                        //
-                                        // Level1 & 2 : (are the same for files) Fully checksum changed only files
-                                        // Here we are just getting the TimeStamp of the File, and later
-                                        // if the TimeStamp was not matched we will have to read the files CRC, MD5 & SHA1
-                                        //
-                                        // Level3: Fully checksum everything
-                                        // Get everything about the file right here so
-                                        // read CRC, MD5 & SHA1
-
-
-                                        // add all the files in the sub-directory to scanDir
-                                        RvFile tFile = new RvFile(FileType.File)
-                                                           {
-                                                               Name = fName,
-                                                               Size = (ulong)oFile.Length,
-                                                               TimeStamp = oFile.LastWriteTime
-                                                           };
-
-                                        tFile.FileStatusSet(FileStatus.SizeVerified);
-
-                                        int errorCode = CHD.CheckFile(oFile, out tFile.SHA1CHD, out tFile.MD5CHD, out tFile.CHDVersion);
-
-                                        if (errorCode == 0)
-                                        {
-                                            if (tFile.SHA1CHD != null) tFile.FileStatusSet(FileStatus.SHA1CHDFromHeader);
-                                            if (tFile.MD5CHD != null) tFile.FileStatusSet(FileStatus.MD5CHDFromHeader);
-
-                                            tFile.SetStatus(chechingDatStatus, GotStatus.Got);
-
-                                            // if we are scanning at Level3 then we get all the info here
-                                            if (EScanLevel == eScanLevel.Level3)
-                                            {
-                                                DeepScanFile(fullDir, tFile);
-                                                ChdManCheck(fullDir, tFile);
-                                            }
-                                        }
-                                        else if (errorCode == 32)
-                                        {
-                                            tFile.GotStatus = GotStatus.FileLocked;
-                                            _bgw.ReportProgress(0, new bgwShowError(fullDir, "File Locked"));
-                                        }
-                                        else
-                                        {
-                                            string filename = Path.Combine(fullDir, tFile.Name);
-                                            ReportError.Show("File: " + filename + " Error: " + new Win32Exception(errorCode).Message + ". Scan Aborted.");
-                                            _fileErrorAbort = true;
-                                            return;
-                                        }
-                                        fileDir.ChildAdd(tFile);
-                                    }
-                                    break;
+                                RvDir tGame = new RvDir(FileType.SevenZip)
+                                {
+                                    Name = Path.GetFileNameWithoutExtension(oFile.Name),
+                                    TimeStamp = oFile.LastWriteTime
+                                };
+                                tGame.SetStatus(chechingDatStatus, GotStatus.Got);
+                                fileDir.ChildAdd(tGame);
                             }
+                                break;
+                            case ".zip":
+                            {
+                                RvDir tGame = new RvDir(FileType.Zip)
+                                {
+                                    Name = Path.GetFileNameWithoutExtension(oFile.Name),
+                                    TimeStamp = oFile.LastWriteTime
+                                };
+                                tGame.SetStatus(chechingDatStatus, GotStatus.Got);
+                                fileDir.ChildAdd(tGame);
+                            }
+                                break;
+                            default:
+                            {
+                                string fName = oFile.Name;
+                                if (fName == "__RomVault.tmp")
+                                {
+                                    File.Delete(oFile.FullName);
+                                    continue;
+                                }
+
+                                // Scanning a file
+                                //
+                                // Level1 & 2 : (are the same for files) Fully checksum changed only files
+                                // Here we are just getting the TimeStamp of the File, and later
+                                // if the TimeStamp was not matched we will have to read the files CRC, MD5 & SHA1
+                                //
+                                // Level3: Fully checksum everything
+                                // Get everything about the file right here so
+                                // read CRC, MD5 & SHA1
+
+
+                                // add all the files in the sub-directory to scanDir
+                                RvFile tFile = new RvFile(FileType.File)
+                                {
+                                    Name = fName,
+                                    Size = (ulong) oFile.Length,
+                                    TimeStamp = oFile.LastWriteTime
+                                };
+
+                                tFile.FileStatusSet(FileStatus.SizeVerified);
+
+                                int errorCode = CHD.CheckFile(oFile, out tFile.SHA1CHD, out tFile.MD5CHD, out tFile.CHDVersion);
+
+                                if (errorCode == 0)
+                                {
+                                    if (tFile.SHA1CHD != null)
+                                    {
+                                        tFile.FileStatusSet(FileStatus.SHA1CHDFromHeader);
+                                    }
+                                    if (tFile.MD5CHD != null)
+                                    {
+                                        tFile.FileStatusSet(FileStatus.MD5CHDFromHeader);
+                                    }
+
+                                    tFile.SetStatus(chechingDatStatus, GotStatus.Got);
+
+                                    // if we are scanning at Level3 then we get all the info here
+                                    if (EScanLevel == eScanLevel.Level3)
+                                    {
+                                        DeepScanFile(fullDir, tFile);
+                                        ChdManCheck(fullDir, tFile);
+                                    }
+                                }
+                                else if (errorCode == 32)
+                                {
+                                    tFile.GotStatus = GotStatus.FileLocked;
+                                    _bgw.ReportProgress(0, new bgwShowError(fullDir, "File Locked"));
+                                }
+                                else
+                                {
+                                    string filename = Path.Combine(fullDir, tFile.Name);
+                                    ReportError.Show("File: " + filename + " Error: " + new Win32Exception(errorCode).Message + ". Scan Aborted.");
+                                    _fileErrorAbort = true;
+                                    return;
+                                }
+                                fileDir.ChildAdd(tFile);
+                            }
+                                break;
                         }
                     }
+                }
                     break;
                 default:
                     ReportError.SendAndShow("Un supported file type in CheckADir " + ft);
                     break;
             }
+
             #endregion
 
             if (fileDir == null)
@@ -346,14 +392,16 @@ namespace ROMVault2
                 _bgw.ReportProgress(0, new bgwRange2Visible(true));
             }
 
-            if (!DBTypeGet.isCompressedDir(ft) && _bgw.CancellationPending) return;
+            if (!DBTypeGet.isCompressedDir(ft) && _bgw.CancellationPending)
+            {
+                return;
+            }
 
             Compare(dbDir, fileDir, report, true);
         }
 
-        public static void Compare(RvDir dbDir, RvDir fileDir, bool report, bool enableCancel)
+        private static void Compare(RvDir dbDir, RvDir fileDir, bool report, bool enableCancel)
         {
-
             string fullDir = dbDir.FullName;
             FileType ft = dbDir.FileType;
 
@@ -366,13 +414,13 @@ namespace ROMVault2
             int fileIndex = 0;
 
 
-            while (dbIndex < dbDir.ChildCount || fileIndex < fileDir.ChildCount)
+            while ((dbIndex < dbDir.ChildCount) || (fileIndex < fileDir.ChildCount))
             {
                 RvBase dbChild = null;
                 RvBase fileChild = null;
                 int res = 0;
 
-                if (dbIndex < dbDir.ChildCount && fileIndex < fileDir.ChildCount)
+                if ((dbIndex < dbDir.ChildCount) && (fileIndex < fileDir.ChildCount))
                 {
                     dbChild = dbDir.Child(dbIndex);
                     fileChild = fileDir.Child(fileIndex);
@@ -396,7 +444,7 @@ namespace ROMVault2
                     if (fileChild != null)
                     {
                         long timenow = DateTime.Now.Ticks;
-                        if ((timenow - _lastUpdateTime) > (TimeSpan.TicksPerSecond / 10))
+                        if (timenow - _lastUpdateTime > TimeSpan.TicksPerSecond/10)
                         {
                             _lastUpdateTime = timenow;
                             _bgw.ReportProgress(0, new bgwValue2(fileIndex));
@@ -410,7 +458,7 @@ namespace ROMVault2
                 {
                     case 0:
 
-                        if (dbChild == null || fileChild == null)
+                        if ((dbChild == null) || (fileChild == null))
                         {
                             ReportError.SendAndShow(Resources.FileScanning_CheckADir_Error_in_File_Scanning_Code);
                             break;
@@ -426,12 +474,12 @@ namespace ROMVault2
                         dbs.Add(dbChild);
                         files.Add(fileChild);
 
-                        while (dbIndex + dbsCount < dbDir.ChildCount && DBHelper.CompareName(dbChild, dbDir.Child(dbIndex + dbsCount)) == 0)
+                        while ((dbIndex + dbsCount < dbDir.ChildCount) && (DBHelper.CompareName(dbChild, dbDir.Child(dbIndex + dbsCount)) == 0))
                         {
                             dbs.Add(dbDir.Child(dbIndex + dbsCount));
                             dbsCount += 1;
                         }
-                        while (fileIndex + filesCount < fileDir.ChildCount && DBHelper.CompareName(fileChild, fileDir.Child(fileIndex + filesCount)) == 0)
+                        while ((fileIndex + filesCount < fileDir.ChildCount) && (DBHelper.CompareName(fileChild, fileDir.Child(fileIndex + filesCount)) == 0))
                         {
                             files.Add(fileDir.Child(fileIndex + filesCount));
                             filesCount += 1;
@@ -439,28 +487,46 @@ namespace ROMVault2
 
                         for (int indexfile = 0; indexfile < filesCount; indexfile++)
                         {
-                            if (files[indexfile].SearchFound) continue;
+                            if (files[indexfile].SearchFound)
+                            {
+                                continue;
+                            }
 
                             for (int indexdb = 0; indexdb < dbsCount; indexdb++)
                             {
-                                if (dbs[indexdb].SearchFound) continue;
+                                if (dbs[indexdb].SearchFound)
+                                {
+                                    continue;
+                                }
 
                                 bool matched = FullCompare(dbs[indexdb], files[indexfile], false, fullDir, EScanLevel);
-                                if (!matched) continue;
+                                if (!matched)
+                                {
+                                    continue;
+                                }
 
                                 MatchFound(dbs[indexdb], files[indexfile]);
                                 dbs[indexdb].SearchFound = true;
                                 files[indexfile].SearchFound = true;
                             }
 
-                            if (files[indexfile].SearchFound) continue;
+                            if (files[indexfile].SearchFound)
+                            {
+                                continue;
+                            }
 
                             for (int indexdb = 0; indexdb < dbsCount; indexdb++)
                             {
-                                if (dbs[indexdb].SearchFound) continue;
+                                if (dbs[indexdb].SearchFound)
+                                {
+                                    continue;
+                                }
 
                                 bool matched = FullCompare(dbs[indexdb], files[indexfile], true, fullDir, EScanLevel);
-                                if (!matched) continue;
+                                if (!matched)
+                                {
+                                    continue;
+                                }
 
                                 MatchFound(dbs[indexdb], files[indexfile]);
                                 dbs[indexdb].SearchFound = true;
@@ -482,7 +548,9 @@ namespace ROMVault2
                         for (int indexfile = 0; indexfile < filesCount; indexfile++)
                         {
                             if (files[indexfile].SearchFound)
+                            {
                                 continue;
+                            }
                             NewFileFound(files[indexfile], dbDir, dbIndex);
                             dbIndex++;
                         }
@@ -499,8 +567,14 @@ namespace ROMVault2
                         break;
                 }
 
-                if (_fileErrorAbort) return;
-                if (enableCancel && !DBTypeGet.isCompressedDir(ft) && _bgw.CancellationPending) return;
+                if (_fileErrorAbort)
+                {
+                    return;
+                }
+                if (enableCancel && !DBTypeGet.isCompressedDir(ft) && _bgw.CancellationPending)
+                {
+                    return;
+                }
             }
         }
 
@@ -510,28 +584,39 @@ namespace ROMVault2
             switch (dbChild.FileType)
             {
                 case FileType.Zip:
-                    if (dbChild.TimeStamp != fileChild.TimeStamp || EScanLevel == eScanLevel.Level3 ||
-                        (EScanLevel == eScanLevel.Level2 && !IsDeepScanned((RvDir)dbChild)))
+                case FileType.SevenZip:
+                    if ((dbChild.TimeStamp != fileChild.TimeStamp) || (EScanLevel == eScanLevel.Level3) ||
+                        ((EScanLevel == eScanLevel.Level2) && !IsDeepScanned((RvDir) dbChild)))
                     {
                         // this is done first as the CheckADir could change this value if the zip turns out to be corrupt
                         dbChild.FileAdd(fileChild);
-                        CheckADir((RvDir)dbChild, false);
+                        CheckADir((RvDir) dbChild, false);
                     }
                     else
                         // this is still needed incase the filenames case (upper/lower characters) have changed, but nothing else
+                    {
                         dbChild.FileCheckName(fileChild);
+                    }
                     break;
                 case FileType.Dir:
-                    RvDir tDir = (RvDir)dbChild;
+                    RvDir tDir = (RvDir) dbChild;
                     if (tDir.Tree == null) // do not recurse into directories that are in the tree, as they are processed by the top level code.
+                    {
                         CheckADir(tDir, true);
-                    if (_fileErrorAbort) return;
+                    }
+                    if (_fileErrorAbort)
+                    {
+                        return;
+                    }
                     dbChild.FileAdd(fileChild);
                     break;
                 case FileType.File:
                 case FileType.ZipFile:
-                if (dbChild.TimeStamp == fileChild.TimeStamp && dbChild.GotStatus == GotStatus.Corrupt)
+                case FileType.SevenZipFile:
+                    if ((dbChild.TimeStamp == fileChild.TimeStamp) && (dbChild.GotStatus == GotStatus.Corrupt))
+                    {
                         fileChild.GotStatus = GotStatus.Corrupt;
+                    }
 
                     dbChild.FileAdd(fileChild);
                     break;
@@ -555,33 +640,38 @@ namespace ROMVault2
             switch (fileChild.FileType)
             {
                 case FileType.Zip:
+                case FileType.SevenZip:
                     dbDir.ChildAdd(fileChild, dbIndex);
-                    CheckADir((RvDir)fileChild, false);
+                    CheckADir((RvDir) fileChild, false);
                     break;
                 case FileType.Dir:
                     dbDir.ChildAdd(fileChild, dbIndex);
-                    CheckADir((RvDir)fileChild, true);
+                    CheckADir((RvDir) fileChild, true);
                     break;
                 case FileType.File:
 
-                    RvFile tChild = (RvFile)fileChild;
+                    RvFile tChild = (RvFile) fileChild;
                     // if we have not read the files CRC in the checking code, we need to read it now.
                     if (tChild.GotStatus != GotStatus.FileLocked)
                     {
                         if (!IsDeepScanned(tChild))
+                        {
                             DeepScanFile(dbDir.FullName, tChild);
-                        if (!IschdmanScanned(tChild) && EScanLevel == eScanLevel.Level2)
+                        }
+                        if (!IschdmanScanned(tChild) && (EScanLevel == eScanLevel.Level2))
+                        {
                             ChdManCheck(dbDir.FullName, tChild);
+                        }
                     }
                     dbDir.ChildAdd(fileChild, dbIndex);
                     break;
                 case FileType.ZipFile:
+                case FileType.SevenZipFile:
                     dbDir.ChildAdd(fileChild, dbIndex);
                     break;
                 default:
                     throw new Exception("Unsuported file type " + fileChild.FileType);
             }
-
         }
 
         private static void DBFileNotFound(RvBase dbChild, RvDir dbDir, ref int dbIndex)
@@ -593,18 +683,23 @@ namespace ROMVault2
             }
 
             if (dbChild.FileRemove() == EFile.Delete)
+            {
                 dbDir.ChildRemove(dbIndex);
+            }
             else
             {
                 switch (dbChild.FileType)
                 {
                     case FileType.Zip:
-                        MarkAsMissing((RvDir)dbChild);
+                    case FileType.SevenZip:
+                        MarkAsMissing((RvDir) dbChild);
                         break;
                     case FileType.Dir:
-                        RvDir tDir = (RvDir)dbChild;
+                        RvDir tDir = (RvDir) dbChild;
                         if (tDir.Tree == null)
+                        {
                             MarkAsMissing(tDir);
+                        }
                         break;
                 }
                 dbIndex++;
@@ -617,9 +712,11 @@ namespace ROMVault2
             for (int i = 0; i < tZip.ChildCount; i++)
             {
                 RvFile zFile = tZip.Child(i) as RvFile;
-                if (zFile != null && zFile.GotStatus == GotStatus.Got &&
+                if ((zFile != null) && (zFile.GotStatus == GotStatus.Got) &&
                     (!zFile.FileStatusIs(FileStatus.SizeVerified) || !zFile.FileStatusIs(FileStatus.CRCVerified) || !zFile.FileStatusIs(FileStatus.SHA1Verified) || !zFile.FileStatusIs(FileStatus.MD5Verified)))
+                {
                     return false;
+                }
             }
             return true;
         }
@@ -640,12 +737,16 @@ namespace ROMVault2
                     switch (dbChild.FileType)
                     {
                         case FileType.Zip:
-                            MarkAsMissing((RvDir)dbChild);
+                        case FileType.SevenZip:
+                            MarkAsMissing((RvDir) dbChild);
                             break;
+
                         case FileType.Dir:
-                            RvDir tDir = (RvDir)dbChild;
+                            RvDir tDir = (RvDir) dbChild;
                             if (tDir.Tree == null)
+                            {
                                 MarkAsMissing(tDir);
+                            }
                             break;
                     }
                 }
@@ -659,66 +760,96 @@ namespace ROMVault2
             Debug.WriteLine("Comparing File     " + testFile.TreeFullName);
 
             int retv = DBHelper.CompareName(dbFile, testFile);
-            if (retv != 0) return false;
+            if (retv != 0)
+            {
+                return false;
+            }
 
             FileType dbfileType = dbFile.FileType;
             FileType dbtestFile = testFile.FileType;
             retv = Math.Sign(dbfileType.CompareTo(dbtestFile));
-            if (retv != 0) return false;
+            if (retv != 0)
+            {
+                return false;
+            }
 
             // filetypes are now know to be the same
 
             // Dir's and Zip's are not deep scanned so matching here is done
-            if ((dbfileType == FileType.Dir) || (dbfileType == FileType.Zip))
+            if ((dbfileType == FileType.Dir) || (dbfileType == FileType.Zip) || (dbfileType == FileType.SevenZip))
+            {
                 return true;
+            }
 
-            RvFile dbFileF = (RvFile)dbFile;
-            RvFile testFileF = (RvFile)testFile;
+            RvFile dbFileF = (RvFile) dbFile;
+            RvFile testFileF = (RvFile) testFile;
 
 
-            if (dbFileF.Size != null && testFileF.Size != null)
+            if ((dbFileF.Size != null) && (testFileF.Size != null))
             {
                 retv = ULong.iCompare(dbFileF.Size, testFileF.Size);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
-            if (dbFileF.CRC != null && testFileF.CRC != null)
+            if ((dbFileF.CRC != null) && (testFileF.CRC != null))
             {
                 retv = ArrByte.iCompare(dbFileF.CRC, testFileF.CRC);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
-            if (dbFileF.SHA1 != null && testFileF.SHA1 != null)
+            if ((dbFileF.SHA1 != null) && (testFileF.SHA1 != null))
             {
                 retv = ArrByte.iCompare(dbFileF.SHA1, testFileF.SHA1);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
-            if (dbFileF.MD5 != null && testFileF.MD5 != null)
+            if ((dbFileF.MD5 != null) && (testFileF.MD5 != null))
             {
                 retv = ArrByte.iCompare(dbFileF.MD5, testFileF.MD5);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
-            if (dbFileF.SHA1CHD != null && testFileF.SHA1CHD != null)
+            if ((dbFileF.SHA1CHD != null) && (testFileF.SHA1CHD != null))
             {
                 retv = ArrByte.iCompare(dbFileF.SHA1CHD, testFileF.SHA1CHD);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
-            if (dbFileF.MD5CHD != null && testFileF.MD5CHD != null)
+            if ((dbFileF.MD5CHD != null) && (testFileF.MD5CHD != null))
             {
                 retv = ArrByte.iCompare(dbFileF.MD5CHD, testFileF.MD5CHD);
-                if (retv != 0) return false;
+                if (retv != 0)
+                {
+                    return false;
+                }
             }
 
             // beyond here we only test files
             if (dbtestFile != FileType.File)
+            {
                 return true;
+            }
 
             // if scanning at level 3 then we have already deep checked the file so all is OK.
             if (sLevel == eScanLevel.Level3)
+            {
                 return true;
+            }
 
             // if we got this far then everything we have so far has matched, but that may not be enough.
             // now we see if we need to get any more info and try again.
@@ -729,36 +860,49 @@ namespace ROMVault2
 
             // files are always deep scanned, so the test for IsDeepScanned(dbFileF) is probably not really needed here.
 
-            if ((dbFileF.TimeStamp != testFileF.TimeStamp || !IsDeepScanned(dbFileF)) && !IsDeepScanned(testFileF))
+            if (((dbFileF.TimeStamp != testFileF.TimeStamp) || !IsDeepScanned(dbFileF)) && !IsDeepScanned(testFileF))
             {
                 if (!secondPass)
+                {
                     return false;
+                }
 
                 DeepScanFile(fullDir, testFileF);
-                if (dbFileF.CRC != null && testFileF.CRC != null)
+                if ((dbFileF.CRC != null) && (testFileF.CRC != null))
                 {
                     retv = ArrByte.iCompare(dbFileF.CRC, testFileF.CRC);
-                    if (retv != 0) return false;
+                    if (retv != 0)
+                    {
+                        return false;
+                    }
                 }
 
-                if (dbFileF.SHA1 != null && testFileF.SHA1 != null)
+                if ((dbFileF.SHA1 != null) && (testFileF.SHA1 != null))
                 {
                     retv = ArrByte.iCompare(dbFileF.SHA1, testFileF.SHA1);
-                    if (retv != 0) return false;
+                    if (retv != 0)
+                    {
+                        return false;
+                    }
                 }
 
-                if (dbFileF.MD5 != null && testFileF.MD5 != null)
+                if ((dbFileF.MD5 != null) && (testFileF.MD5 != null))
                 {
                     retv = ArrByte.iCompare(dbFileF.MD5, testFileF.MD5);
-                    if (retv != 0) return false;
+                    if (retv != 0)
+                    {
+                        return false;
+                    }
                 }
             }
 
             // CHDman test, if we are only scanning at level 1 then don't do CHDman test so we are done. 
             if (sLevel == eScanLevel.Level1)
+            {
                 return true;
+            }
 
-            if ((dbFileF.TimeStamp != testFileF.TimeStamp || (!IschdmanScanned(dbFileF)) && !IschdmanScanned(testFileF)))
+            if ((dbFileF.TimeStamp != testFileF.TimeStamp) || (!IschdmanScanned(dbFileF) && !IschdmanScanned(testFileF)))
             {
                 ChdManCheck(fullDir, testFileF);
             }
@@ -768,12 +912,10 @@ namespace ROMVault2
 
         private static bool IsDeepScanned(RvFile tFile)
         {
-            return (
-                       tFile.FileStatusIs(FileStatus.SizeVerified) &&
-                       tFile.FileStatusIs(FileStatus.CRCVerified) &&
-                       tFile.FileStatusIs(FileStatus.SHA1Verified) &&
-                       tFile.FileStatusIs(FileStatus.MD5Verified)
-                   );
+            return tFile.FileStatusIs(FileStatus.SizeVerified) &&
+                   tFile.FileStatusIs(FileStatus.CRCVerified) &&
+                   tFile.FileStatusIs(FileStatus.SHA1Verified) &&
+                   tFile.FileStatusIs(FileStatus.MD5Verified);
         }
 
         private static bool IschdmanScanned(RvFile tFile)
@@ -782,7 +924,9 @@ namespace ROMVault2
             //    return true;
 
             if (tFile.GotStatus == GotStatus.Corrupt)
+            {
                 return true;
+            }
 
             return tFile.FileStatusIs(FileStatus.SHA1CHDVerified);
         }
@@ -809,7 +953,10 @@ namespace ROMVault2
         {
             string filename = Path.Combine(directory, tFile.Name);
 
-            if (!tFile.FileStatusIs(FileStatus.SHA1CHDFromHeader)) return;
+            if (!tFile.FileStatusIs(FileStatus.SHA1CHDFromHeader))
+            {
+                return;
+            }
             _bgw.ReportProgress(0, new bgwText2(filename));
 
             string error;
@@ -840,4 +987,3 @@ namespace ROMVault2
         }
     }
 }
-

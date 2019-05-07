@@ -3,6 +3,7 @@
  *     Contact gordon@romvault.com                    *
  *     Copyright 2014                                 *
  ******************************************************/
+
 using System;
 using System.Text;
 using System.Threading;
@@ -10,22 +11,21 @@ using System.Windows.Forms;
 
 namespace ROMVault2
 {
-    static class Program
+    internal static class Program
     {
-        //public static UsernamePassword Up;
+        public const string Version = "2.6";
+        public const int SubVersion = 3;
         public static readonly Encoding Enc = Encoding.GetEncoding(28591);
-        public const string Version = "2.2";
-        public const int SubVersion = 7;
 
         public static SynchronizationContext SyncCont;
 
         public static Settings rvSettings;
 
         /// <summary>
-        /// The main entry point for the application.
+        ///     The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             rvSettings = new Settings();
 

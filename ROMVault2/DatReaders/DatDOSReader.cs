@@ -10,6 +10,7 @@ using System.IO;
 using ROMVault2.Properties;
 using ROMVault2.RvDB;
 using ROMVault2.Utils;
+using FileStream = RVIO.FileStream;
 
 namespace ROMVault2.DatReaders
 {
@@ -39,13 +40,17 @@ namespace ROMVault2.DatReaders
                         _cleanFileNames = true;
                         DatFileLoader.Gn();
                         if (!LoadHeaderFromDat(ref tNow, ref thisFileType))
+                        {
                             return false;
+                        }
                         DatFileLoader.Gn();
                         break;
                     case "game":
                         DatFileLoader.Gn();
                         if (!LoadGameFromDat(ref tNow, thisFileType))
+                        {
                             return false;
+                        }
                         DatFileLoader.Gn();
                         break;
                     default:
@@ -61,7 +66,6 @@ namespace ROMVault2.DatReaders
 
         private static bool LoadHeaderFromDat(ref RvDir tDir, ref FileType thisFileType)
         {
-
             if (DatFileLoader.Next != "(")
             {
                 DatUpdate.SendAndShowDat(Resources.DatCmpReader_LoadHeaderFromDat_not_found_after_clrmamepro, DatFileLoader.Filename);
@@ -73,22 +77,44 @@ namespace ROMVault2.DatReaders
             while (DatFileLoader.Next != ")")
             {
                 string nextstr = DatFileLoader.Next.ToLower();
-                if (nextstr.Length > 5 && nextstr.Substring(0, 5) == "name:")
+                if ((nextstr.Length > 5) && (nextstr.Substring(0, 5) == "name:"))
                 {
-                    tDat.AddData(RvDat.DatData.DatName,  VarFix.CleanFileName(DatFileLoader.Next.Substring(5) + " " + DatFileLoader.GnRest()).Trim()); DatFileLoader.Gn();
+                    tDat.AddData(RvDat.DatData.DatName, VarFix.CleanFileName(DatFileLoader.Next.Substring(5) + " " + DatFileLoader.GnRest()).Trim());
+                    DatFileLoader.Gn();
                 }
                 else
                 {
                     switch (nextstr)
                     {
-                        case "name:": tDat.AddData(RvDat.DatData.DatName, VarFix.CleanFileName(DatFileLoader.GnRest())); DatFileLoader.Gn(); break;
-                        case "description:": tDat.AddData(RvDat.DatData.Description , DatFileLoader.GnRest()); DatFileLoader.Gn(); break;
-                        case "version:": tDat.AddData(RvDat.DatData.Version , DatFileLoader.GnRest()); DatFileLoader.Gn(); break;
-                        case "date:": tDat.AddData(RvDat.DatData.Date , DatFileLoader.GnRest()); DatFileLoader.Gn(); break;
-                        case "author:": tDat.AddData(RvDat.DatData.Author , DatFileLoader.GnRest()); DatFileLoader.Gn(); break;
-                        case "homepage:": tDat.AddData(RvDat.DatData.HomePage , DatFileLoader.GnRest()); DatFileLoader.Gn(); break;
+                        case "name:":
+                            tDat.AddData(RvDat.DatData.DatName, VarFix.CleanFileName(DatFileLoader.GnRest()));
+                            DatFileLoader.Gn();
+                            break;
+                        case "description:":
+                            tDat.AddData(RvDat.DatData.Description, DatFileLoader.GnRest());
+                            DatFileLoader.Gn();
+                            break;
+                        case "version:":
+                            tDat.AddData(RvDat.DatData.Version, DatFileLoader.GnRest());
+                            DatFileLoader.Gn();
+                            break;
+                        case "date:":
+                            tDat.AddData(RvDat.DatData.Date, DatFileLoader.GnRest());
+                            DatFileLoader.Gn();
+                            break;
+                        case "author:":
+                            tDat.AddData(RvDat.DatData.Author, DatFileLoader.GnRest());
+                            DatFileLoader.Gn();
+                            break;
+                        case "homepage:":
+                            tDat.AddData(RvDat.DatData.HomePage, DatFileLoader.GnRest());
+                            DatFileLoader.Gn();
+                            break;
 
-                        case "comment:": DatFileLoader.GnRest(); DatFileLoader.Gn(); break;
+                        case "comment:":
+                            DatFileLoader.GnRest();
+                            DatFileLoader.Gn();
+                            break;
                         default:
                             DatUpdate.SendAndShowDat(Resources.DatCmpReader_ReadDat_Error_keyword + DatFileLoader.Next + Resources.DatCmpReader_LoadHeaderFromDat_not_known_in_clrmamepro, DatFileLoader.Filename);
                             DatFileLoader.Gn();
@@ -100,10 +126,7 @@ namespace ROMVault2.DatReaders
             thisFileType = FileType.ZipFile;
             tDir.Dat = tDat;
             return true;
-
         }
-
-
 
 
         private static bool LoadGameFromDat(ref RvDir tDat, FileType thisFileType)
@@ -127,7 +150,9 @@ namespace ROMVault2.DatReaders
 
             string fullname = VarFix.CleanFullFileName(DatFileLoader.GnRest());
             if (_cleanFileNames)
+            {
                 fullname = fullname.Replace("/", "-");
+            }
 
             while (fullname.Contains("/"))
             {
@@ -135,9 +160,9 @@ namespace ROMVault2.DatReaders
                 string dir = fullname.Substring(0, firstSlash);
                 fullname = fullname.Substring(firstSlash + 1);
                 int index;
-                if (parent.ChildNameSearch(new RvDir(FileType.Dir) { Name = dir }, out index) == 0)
+                if (parent.ChildNameSearch(new RvDir(FileType.Dir) {Name = dir}, out index) == 0)
                 {
-                    parent = (RvDir)parent.Child(index);
+                    parent = (RvDir) parent.Child(index);
                 }
                 else
                 {
@@ -153,10 +178,12 @@ namespace ROMVault2.DatReaders
                 }
             }
 
-            if (fullname.Length > 4 && fullname.ToLower().Substring(fullname.Length - 4, 4) == ".zip")
+            if ((fullname.Length > 4) && (fullname.ToLower().Substring(fullname.Length - 4, 4) == ".zip"))
+            {
                 fullname = fullname.Substring(0, fullname.Length - 4);
+            }
 
-            RvDir tDir = new RvDir(thisFileType == FileType.File ? FileType.Dir : FileType.Zip) { Name = fullname };
+            RvDir tDir = new RvDir(thisFileType == FileType.File ? FileType.Dir : FileType.Zip) {Name = fullname};
 
             DatFileLoader.Gn();
             tDir.Game = new RvGame();
@@ -181,7 +208,9 @@ namespace ROMVault2.DatReaders
                     case "file":
                         DatFileLoader.Gn();
                         if (!LoadRomFromDat(ref tDir, thisFileType))
+                        {
                             return false;
+                        }
                         DatFileLoader.Gn();
                         break;
                     default:
@@ -197,22 +226,21 @@ namespace ROMVault2.DatReaders
 
         private static bool LoadRomFromDat(ref RvDir tGame, FileType thisFileType)
         {
-
             if (DatFileLoader.Next != "(")
             {
                 DatUpdate.SendAndShowDat(Resources.DatCmpReader_LoadRomFromDat_not_found_after_rom, DatFileLoader.Filename);
                 return false;
             }
-            string line=DatFileLoader.GnRest();
+            string line = DatFileLoader.GnRest();
             string linelc = line.ToLower();
 
             int posName = linelc.IndexOf("name ", StringComparison.Ordinal);
-            int posSize = linelc.IndexOf(" size ", posName+5,StringComparison.Ordinal);
-            int posDate = linelc.IndexOf(" date ", posSize+6,StringComparison.Ordinal);
-            int posCrc = linelc.IndexOf(" crc ", posDate+6,StringComparison.Ordinal);
-            int posEnd = linelc.IndexOf(" )", posCrc+5,StringComparison.Ordinal);
+            int posSize = linelc.IndexOf(" size ", posName + 5, StringComparison.Ordinal);
+            int posDate = linelc.IndexOf(" date ", posSize + 6, StringComparison.Ordinal);
+            int posCrc = linelc.IndexOf(" crc ", posDate + 6, StringComparison.Ordinal);
+            int posEnd = linelc.IndexOf(" )", posCrc + 5, StringComparison.Ordinal);
 
-            if (posName < 0 || posSize < 0 || posDate < 0 || posCrc < 0 || posEnd < 0)
+            if ((posName < 0) || (posSize < 0) || (posDate < 0) || (posCrc < 0) || (posEnd < 0))
             {
                 DatFileLoader.Gn();
                 return false;
@@ -224,16 +252,22 @@ namespace ROMVault2.DatReaders
             string crc = line.Substring(posCrc + 5, posEnd - (posCrc + 5));
 
             RvFile tRom = new RvFile(thisFileType)
-                              {
-                                  Dat = tGame.Dat, 
-                                  Name = VarFix.CleanFullFileName(name.Trim()), 
-                                  Size = VarFix.ULong(size.Trim()), 
-                                  CRC = VarFix.CleanMD5SHA1(crc.Trim(), 8)
-                              };
+            {
+                Dat = tGame.Dat,
+                Name = VarFix.CleanFullFileName(name.Trim()),
+                Size = VarFix.ULong(size.Trim()),
+                CRC = VarFix.CleanMD5SHA1(crc.Trim(), 8)
+            };
 
 
-            if (tRom.Size != null) tRom.FileStatusSet(FileStatus.SizeFromDAT);
-            if (tRom.CRC != null) tRom.FileStatusSet(FileStatus.CRCFromDAT);
+            if (tRom.Size != null)
+            {
+                tRom.FileStatusSet(FileStatus.SizeFromDAT);
+            }
+            if (tRom.CRC != null)
+            {
+                tRom.FileStatusSet(FileStatus.CRCFromDAT);
+            }
 
             tGame.ChildAdd(tRom);
 
@@ -241,25 +275,27 @@ namespace ROMVault2.DatReaders
         }
 
 
-
         private static class DatFileLoader
         {
-            public static String Filename { get; private set; }
             private static Stream _fileStream;
             private static StreamReader _streamReader;
             private static string _line = "";
             public static string Next;
+            public static string Filename { get; private set; }
 
             public static int LoadDat(string strFilename)
             {
                 Filename = strFilename;
                 _streamReader = null;
-                int errorCode = IO.FileStream.OpenFileRead(strFilename, out _fileStream);
+                int errorCode = FileStream.OpenFileRead(strFilename, out _fileStream);
                 if (errorCode != 0)
+                {
                     return errorCode;
+                }
                 _streamReader = new StreamReader(_fileStream, Program.Enc);
                 return 0;
             }
+
             public static void Close()
             {
                 _streamReader.Close();
@@ -284,11 +320,14 @@ namespace ROMVault2.DatReaders
             public static void Gn()
             {
                 string ret;
-                while ((_line.Trim().Length == 0) && (!_streamReader.EndOfStream))
+                while ((_line.Trim().Length == 0) && !_streamReader.EndOfStream)
                 {
                     _line = _streamReader.ReadLine();
-                    if (String.IsNullOrEmpty(_line)) _line = "";
-                    _line = _line.Replace("" + (char)9, " ");
+                    if (string.IsNullOrEmpty(_line))
+                    {
+                        _line = "";
+                    }
+                    _line = _line.Replace("" + (char) 9, " ");
                     _line = _line.Trim() + " ";
                 }
 
@@ -316,6 +355,5 @@ namespace ROMVault2.DatReaders
                 Next = ret;
             }
         }
-
     }
 }

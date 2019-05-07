@@ -44,6 +44,7 @@
             this.upTime = new System.Windows.Forms.NumericUpDown();
             this.label5 = new System.Windows.Forms.Label();
             this.chkDoubleCheckDelete = new System.Windows.Forms.CheckBox();
+            this.chkRV7z = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.upTime)).BeginInit();
             this.SuspendLayout();
             // 
@@ -217,11 +218,21 @@
             this.chkDoubleCheckDelete.Text = "Double Check Delete";
             this.chkDoubleCheckDelete.UseVisualStyleBackColor = true;
             // 
+            // chkRV7z
+            // 
+            this.chkRV7z.AutoSize = true;
+            this.chkRV7z.Location = new System.Drawing.Point(395, 284);
+            this.chkRV7z.Name = "chkRV7z";
+            this.chkRV7z.Size = new System.Drawing.Size(131, 17);
+            this.chkRV7z.TabIndex = 23;
+            this.chkRV7z.Text = "Convert all 7z to RV7z";
+            this.chkRV7z.UseVisualStyleBackColor = true;
+            // 
             // FrmSettings
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
             this.ClientSize = new System.Drawing.Size(545, 346);
+            this.Controls.Add(this.chkRV7z);
             this.Controls.Add(this.chkDoubleCheckDelete);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.upTime);
@@ -267,5 +278,6 @@
         private System.Windows.Forms.NumericUpDown upTime;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.CheckBox chkDoubleCheckDelete;
+        private System.Windows.Forms.CheckBox chkRV7z;
     }
 }

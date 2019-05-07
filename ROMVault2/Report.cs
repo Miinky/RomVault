@@ -5,6 +5,7 @@
  ******************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -13,7 +14,7 @@ using ROMVault2.Utils;
 
 namespace ROMVault2
 {
-    static class Report
+    internal static class Report
     {
         private static StreamWriter _ts;
         private static RvDat _tDat;
@@ -21,6 +22,30 @@ namespace ROMVault2
         private static string _dfn;
         private static int _rpy; // count of red plus yellow items per fixdat file
         private static int _ro; // count of red items only per fixdat file
+
+        private static int _fileNameLength;
+        private static int _fileSizeLength;
+        private static int _repStatusLength;
+
+        private static readonly RepStatus[] Partial =
+        {
+            RepStatus.UnScanned,
+            RepStatus.Missing,
+            RepStatus.Corrupt,
+            RepStatus.CanBeFixed,
+            RepStatus.CorruptCanBeFixed
+        };
+
+        private static readonly RepStatus[] Fixing =
+        {
+            RepStatus.CanBeFixed,
+            RepStatus.MoveToSort,
+            RepStatus.Delete,
+            RepStatus.NeededForFix,
+            RepStatus.Rename,
+            RepStatus.CorruptCanBeFixed,
+            RepStatus.MoveToCorrupt
+        };
 
         private static string Etxt(string e)
         {
@@ -38,13 +63,13 @@ namespace ROMVault2
         public static void scrub()
         {
             if (_ro < _rpy) // don't bother unless there is a difference
-            { 
-            System.Collections.Generic.List<string> res = new System.Collections.Generic.List<string>();
-            System.Collections.Generic.List<string> game = new System.Collections.Generic.List<string>();
-            int gameCount = 0, itemCount = 0;
-            bool inHeader = true;
-            foreach (string line in File.ReadAllLines(_dfn))
             {
+                List<string> res = new List<string>();
+                List<string> game = new List<string>();
+                int gameCount = 0, itemCount = 0;
+                bool inHeader = true;
+                foreach (string line in File.ReadAllLines(_dfn))
+                {
                     if (inHeader)
                     {
                         res.Add(line);
@@ -52,9 +77,8 @@ namespace ROMVault2
                         if (!inHeader)
                         {
                             int rc = _rpy - _ro;
-                            res.Insert(res.Count - 1, "\t\t<comment>Excludes " + rc.ToString() + " item" + (rc == 0 ? "" : "s") + " that could be fixed</comment>");
+                            res.Insert(res.Count - 1, "\t\t<comment>Excludes " + rc + " item" + (rc == 0 ? "" : "s") + " that could be fixed</comment>");
                         }
-                          
                     }
                     else
                     {
@@ -62,12 +86,17 @@ namespace ROMVault2
                         {
                             res.Add(line);
                             File.Delete(_dfn);
-                            if (gameCount > 0) File.WriteAllLines(_dfn, res.ToArray());
+                            if (gameCount > 0)
+                            {
+                                File.WriteAllLines(_dfn, res.ToArray());
+                            }
                         }
                         else
                         {
                             if (line.Contains("<game "))
-                                game = new System.Collections.Generic.List<string>() { line };
+                            {
+                                game = new List<string> {line};
+                            }
                             else if (line.Contains("</game>"))
                             {
                                 if (itemCount > 0)
@@ -79,7 +108,9 @@ namespace ROMVault2
                                 itemCount = 0;
                             }
                             else if (line.Contains("<description>"))
+                            {
                                 game.Add(line);
+                            }
                             else if (line.Contains("<rom ") || line.Contains("<disk "))
                             {
                                 game.Add(line);
@@ -104,17 +135,26 @@ namespace ROMVault2
                 SelectedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"Reports")
             };
 
-            if (browse.ShowDialog() != DialogResult.OK) return;
+            if (browse.ShowDialog() != DialogResult.OK)
+            {
+                return;
+            }
 
             _outdir = browse.SelectedPath;
             _tDat = null;
             MakeFixFilesRecurse(DB.DirTree.Child(0), true, scrubIt);
 
-            if (_ts == null) return;
+            if (_ts == null)
+            {
+                return;
+            }
 
             _ts.WriteLine("</datafile>");
             _ts.Close();
-            if (scrubIt) scrub();
+            if (scrubIt)
+            {
+                scrub();
+            }
         }
 
         private static void MakeFixFilesRecurse(RvBase b, bool selected, bool scrubIt)
@@ -124,7 +164,7 @@ namespace ROMVault2
                 if (b.Dat != null)
                 {
                     RvDir tDir = b as RvDir;
-                    if (tDir != null && tDir.Game != null && tDir.DirStatus.HasMissing())
+                    if ((tDir != null) && (tDir.Game != null) && tDir.DirStatus.HasMissing())
                     {
                         if (_tDat != b.Dat)
                         {
@@ -137,7 +177,10 @@ namespace ROMVault2
                             if (_ts != null)
                             {
                                 _ts.Close();
-                                if (scrubIt) scrub();
+                                if (scrubIt)
+                                {
+                                    scrub();
+                                }
                             }
 
                             _tDat = b.Dat;
@@ -161,7 +204,9 @@ namespace ROMVault2
                             _ts.WriteLine("\t<header>");
                             _ts.WriteLine("\t\t<name>fix_" + Etxt(_tDat.GetData(RvDat.DatData.DatName)) + "</name>");
                             if (_tDat.GetData(RvDat.DatData.SuperDat) == "superdat")
+                            {
                                 _ts.WriteLine("\t\t<type>SuperDAT</type>");
+                            }
                             _ts.WriteLine("\t\t<description>fix_" + Etxt(_tDat.GetData(RvDat.DatData.Description)) + "</description>");
                             _ts.WriteLine("\t\t<category>FIXDATFILE</category>");
                             _ts.WriteLine("\t\t<version>" + DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss") + "</version>");
@@ -172,46 +217,65 @@ namespace ROMVault2
 
                         _ts.WriteLine("\t<game name=\"" + Etxt(tDir.SuperDatFileName()) + "\">");
                         if (!string.IsNullOrEmpty(tDir.Game.GetData(RvGame.GameData.Description)))
+                        {
                             _ts.WriteLine("\t\t<description>" + Etxt(tDir.Game.GetData(RvGame.GameData.Description)) + "</description>");
-
+                        }
                     }
 
                     RvFile tRom = b as RvFile;
                     if (tRom != null)
                     {
-
-                        if (tRom.DatStatus == DatStatus.InDatCollect && tRom.GotStatus != GotStatus.Got) _rpy++;
-                        if (tRom.DatStatus == DatStatus.InDatCollect && tRom.GotStatus != GotStatus.Got && !(tRom.RepStatus == RepStatus.CanBeFixed || tRom.RepStatus == RepStatus.CorruptCanBeFixed))
-                            {
+                        if ((tRom.DatStatus == DatStatus.InDatCollect) && (tRom.GotStatus != GotStatus.Got))
+                        {
+                            _rpy++;
+                        }
+                        if ((tRom.DatStatus == DatStatus.InDatCollect) && (tRom.GotStatus != GotStatus.Got) && !((tRom.RepStatus == RepStatus.CanBeFixed) || (tRom.RepStatus == RepStatus.CorruptCanBeFixed)))
+                        {
                             _ro++;
                             string strRom;
                             if (tRom.FileStatusIs(FileStatus.SHA1CHDFromDAT) || tRom.FileStatusIs(FileStatus.MD5CHDFromDAT))
+                            {
                                 strRom = "\t\t<disk name=\"" + Etxt(Path.GetFileNameWithoutExtension(tRom.Name)) + "\"";
+                            }
                             else
+                            {
                                 strRom = "\t\t<rom name=\"" + Etxt(tRom.Name) + "\"";
+                            }
 
-                            if (tRom.FileStatusIs(FileStatus.SizeFromDAT) && tRom.Size != null)
+                            if (tRom.FileStatusIs(FileStatus.SizeFromDAT) && (tRom.Size != null))
+                            {
                                 strRom += " size=\"" + tRom.Size + "\"";
+                            }
 
                             string strCRC = ArrByte.ToString(tRom.CRC);
                             if (tRom.FileStatusIs(FileStatus.CRCFromDAT) && !string.IsNullOrEmpty(strCRC))
+                            {
                                 strRom += " crc=\"" + strCRC + "\"";
+                            }
 
                             string strSHA1 = ArrByte.ToString(tRom.SHA1);
                             if (tRom.FileStatusIs(FileStatus.SHA1FromDAT) && !string.IsNullOrEmpty(strSHA1))
+                            {
                                 strRom += " sha1=\"" + strSHA1 + "\"";
+                            }
 
                             string strMD5 = ArrByte.ToString(tRom.MD5);
                             if (tRom.FileStatusIs(FileStatus.MD5FromDAT) && !string.IsNullOrEmpty(strMD5))
+                            {
                                 strRom += " md5=\"" + strMD5 + "\"";
+                            }
 
                             string strSHA1CHD = ArrByte.ToString(tRom.SHA1CHD);
                             if (tRom.FileStatusIs(FileStatus.SHA1CHDFromDAT) && !string.IsNullOrEmpty(strSHA1CHD))
+                            {
                                 strRom += " sha1=\"" + strSHA1CHD + "\"";
+                            }
 
                             string strMD5CHD = ArrByte.ToString(tRom.MD5CHD);
                             if (tRom.FileStatusIs(FileStatus.MD5CHDFromDAT) && !string.IsNullOrEmpty(strMD5CHD))
+                            {
                                 strRom += " md5=\"" + strMD5CHD + "\"";
+                            }
 
                             strRom += "/>";
 
@@ -228,7 +292,9 @@ namespace ROMVault2
                 {
                     bool nextSelected = selected;
                     if (d.Tree != null)
+                    {
                         nextSelected = d.Tree.Checked == RvTreeRow.TreeSelect.Selected;
+                    }
                     MakeFixFilesRecurse(d.Child(i), nextSelected, scrubIt);
                 }
             }
@@ -238,21 +304,12 @@ namespace ROMVault2
                 if (b.Dat != null)
                 {
                     RvDir tDir = b as RvDir;
-                    if (tDir != null && tDir.Game != null && tDir.DirStatus.HasMissing())
+                    if ((tDir != null) && (tDir.Game != null) && tDir.DirStatus.HasMissing())
                     {
                         _ts.WriteLine("\t</game>");
                     }
                 }
             }
-
-        }
-
-        private enum ReportType
-        {
-            Complete,
-            CompletelyMissing,
-            PartialMissing,
-            Fixing
         }
 
         private static string CleanTime()
@@ -315,7 +372,10 @@ namespace ROMVault2
         private static void FindAllDats(RvBase b, ReportType rt)
         {
             RvDir d = b as RvDir;
-            if (d == null) return;
+            if (d == null)
+            {
+                return;
+            }
             if (d.DirDatCount > 0)
             {
                 for (int i = 0; i < d.DirDatCount; i++)
@@ -338,27 +398,33 @@ namespace ROMVault2
                         {
                             RvDir c = d.Child(j) as RvDir;
 
-                            if (c == null || c.Dat != dat) continue;
+                            if ((c == null) || (c.Dat != dat))
+                            {
+                                continue;
+                            }
 
                             correct += c.DirStatus.CountCorrect();
                             missing += c.DirStatus.CountMissing();
                             fixesNeeded += c.DirStatus.CountFixesNeeded();
-
                         }
                     }
 
                     switch (rt)
                     {
                         case ReportType.Complete:
-                            if (correct > 0 && missing == 0 && fixesNeeded == 0)
+                            if ((correct > 0) && (missing == 0) && (fixesNeeded == 0))
+                            {
                                 _ts.WriteLine(RemoveBase(dat.GetData(RvDat.DatData.DatFullName)));
+                            }
                             break;
                         case ReportType.CompletelyMissing:
-                            if (correct == 0 && missing > 0 && fixesNeeded == 0)
+                            if ((correct == 0) && (missing > 0) && (fixesNeeded == 0))
+                            {
                                 _ts.WriteLine(RemoveBase(dat.GetData(RvDat.DatData.DatFullName)));
+                            }
                             break;
                         case ReportType.PartialMissing:
-                            if ((correct > 0 && missing > 0) || fixesNeeded > 0)
+                            if (((correct > 0) && (missing > 0)) || (fixesNeeded > 0))
                             {
                                 _ts.WriteLine(RemoveBase(dat.GetData(RvDat.DatData.DatFullName)));
                                 _fileNameLength = 0;
@@ -389,10 +455,15 @@ namespace ROMVault2
                 }
             }
 
-            if (b.Dat != null) return;
+            if (b.Dat != null)
+            {
+                return;
+            }
 
             for (int i = 0; i < d.ChildCount; i++)
+            {
                 FindAllDats(d.Child(i), rt);
+            }
         }
 
         private static string RemoveBase(string name)
@@ -401,62 +472,50 @@ namespace ROMVault2
             return p > 0 ? name.Substring(p + 1) : name;
         }
 
-        private static int _fileNameLength;
-        private static int _fileSizeLength;
-        private static int _repStatusLength;
-
-        private static readonly RepStatus[] Partial =
-        {
-            RepStatus.UnScanned,
-            RepStatus.Missing,
-            RepStatus.Corrupt,
-            RepStatus.CanBeFixed,
-            RepStatus.CorruptCanBeFixed,
-        };
-
-        private static readonly RepStatus[] Fixing =
-        {
-            RepStatus.CanBeFixed,
-            RepStatus.MoveToSort,
-            RepStatus.Delete,
-            RepStatus.NeededForFix,
-            RepStatus.Rename,
-            RepStatus.CorruptCanBeFixed,
-            RepStatus.MoveToCorrupt
-        };
-
 
         private static void ReportMissingFindSizes(RvDir dir, RvDat dat, ReportType rt)
         {
             for (int i = 0; i < dir.ChildCount; i++)
             {
                 RvBase b = dir.Child(i);
-                if (b.Dat != null && b.Dat != dat)
+                if ((b.Dat != null) && (b.Dat != dat))
+                {
                     continue;
+                }
 
                 RvFile f = b as RvFile;
 
                 if (f != null)
                 {
                     if (
-                        (rt == ReportType.PartialMissing && Partial.Contains(f.RepStatus)) ||
-                        (rt == ReportType.Fixing && Fixing.Contains(f.RepStatus))
-                        )
+                        ((rt == ReportType.PartialMissing) && Partial.Contains(f.RepStatus)) ||
+                        ((rt == ReportType.Fixing) && Fixing.Contains(f.RepStatus))
+                    )
                     {
                         int fileNameLength = f.FileNameInsideGame().Length;
                         int fileSizeLength = f.Size.ToString().Length;
                         int repStatusLength = f.RepStatus.ToString().Length;
 
-                        if (fileNameLength > _fileNameLength) _fileNameLength = fileNameLength;
-                        if (fileSizeLength > _fileSizeLength) _fileSizeLength = fileSizeLength;
-                        if (repStatusLength > _repStatusLength) _repStatusLength = repStatusLength;
+                        if (fileNameLength > _fileNameLength)
+                        {
+                            _fileNameLength = fileNameLength;
+                        }
+                        if (fileSizeLength > _fileSizeLength)
+                        {
+                            _fileSizeLength = fileSizeLength;
+                        }
+                        if (repStatusLength > _repStatusLength)
+                        {
+                            _repStatusLength = repStatusLength;
+                        }
                     }
                 }
                 RvDir d = b as RvDir;
                 if (d != null)
+                {
                     ReportMissingFindSizes(d, dat, rt);
+                }
             }
-
         }
 
         private static void ReportDrawBars()
@@ -469,32 +528,42 @@ namespace ROMVault2
             for (int i = 0; i < dir.ChildCount; i++)
             {
                 RvBase b = dir.Child(i);
-                if (b.Dat != null && b.Dat != dat)
+                if ((b.Dat != null) && (b.Dat != dat))
+                {
                     continue;
+                }
 
                 RvFile f = b as RvFile;
 
                 if (f != null)
                 {
                     if (
-                       (rt == ReportType.PartialMissing && Partial.Contains(f.RepStatus)) ||
-                       (rt == ReportType.Fixing && Fixing.Contains(f.RepStatus))
-                       )
+                        ((rt == ReportType.PartialMissing) && Partial.Contains(f.RepStatus)) ||
+                        ((rt == ReportType.Fixing) && Fixing.Contains(f.RepStatus))
+                    )
                     {
                         string filename = f.FileNameInsideGame();
                         string crc = ArrByte.ToString(f.CRC);
                         _ts.WriteLine("| " + filename + new string(' ', _fileNameLength + 1 - filename.Length) + "| "
-                                          + f.Size + new string(' ', _fileSizeLength + 1 - f.Size.ToString().Length) + "| "
-                                          + crc + new string(' ', 9 - crc.Length) + "| "
-                                          + f.RepStatus + new string(' ', _repStatusLength + 1 - f.RepStatus.ToString().Length) + "|");
+                                      + f.Size + new string(' ', _fileSizeLength + 1 - f.Size.ToString().Length) + "| "
+                                      + crc + new string(' ', 9 - crc.Length) + "| "
+                                      + f.RepStatus + new string(' ', _repStatusLength + 1 - f.RepStatus.ToString().Length) + "|");
                     }
                 }
                 RvDir d = b as RvDir;
                 if (d != null)
+                {
                     ReportMissing(d, dat, rt);
+                }
             }
-
         }
 
+        private enum ReportType
+        {
+            Complete,
+            CompletelyMissing,
+            PartialMissing,
+            Fixing
+        }
     }
 }

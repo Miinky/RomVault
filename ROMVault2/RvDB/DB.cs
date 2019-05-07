@@ -8,15 +8,15 @@ using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using ROMVault2.Properties;
+using File = RVIO.File;
+using FileStream = System.IO.FileStream;
 
 namespace ROMVault2.RvDB
 {
-
-
     public static class DBVersion
     {
-        public static int VersionNow;
         public const int Version = 7;
+        public static int VersionNow;
     }
 
     public static class DB
@@ -30,25 +30,25 @@ namespace ROMVault2.RvDB
         private static void OpenDefaultDB()
         {
             DirTree = new RvDir(FileType.Dir)
-                          {
-                              Tree = new RvTreeRow(),
-                              DatStatus = DatStatus.InDatCollect
-                          };
+            {
+                Tree = new RvTreeRow(),
+                DatStatus = DatStatus.InDatCollect
+            };
 
             RvDir rv = new RvDir(FileType.Dir)
-                           {
-                               Name = "RomVault",
-                               Tree = new RvTreeRow(),
-                               DatStatus = DatStatus.InDatCollect
-                           };
+            {
+                Name = "RomVault",
+                Tree = new RvTreeRow(),
+                DatStatus = DatStatus.InDatCollect
+            };
             DirTree.ChildAdd(rv);
 
             RvDir ts = new RvDir(FileType.Dir)
-                           {
-                               Name = "ToSort",
-                               Tree = new RvTreeRow(),
-                               DatStatus = DatStatus.InDatCollect
-                           };
+            {
+                Name = "ToSort",
+                Tree = new RvTreeRow(),
+                DatStatus = DatStatus.InDatCollect
+            };
             DirTree.ChildAdd(ts);
         }
 
@@ -58,9 +58,10 @@ namespace ROMVault2.RvDB
             {
                 string bname = Program.rvSettings.CacheFile + "Backup";
                 if (File.Exists(bname))
+                {
                     File.Delete(bname);
+                }
                 File.Move(Program.rvSettings.CacheFile, bname);
-
             }
             FileStream fs = new FileStream(Program.rvSettings.CacheFile, FileMode.CreateNew, FileAccess.Write);
             BinaryWriter bw = new BinaryWriter(fs);
@@ -76,6 +77,7 @@ namespace ROMVault2.RvDB
             fs.Close();
             fs.Dispose();
         }
+
         public static void Read(object sender, DoWorkEventArgs e)
         {
             Bgw = sender as BackgroundWorker;
@@ -91,13 +93,14 @@ namespace ROMVault2.RvDB
             DirTree = new RvDir(FileType.Dir);
             FileStream fs = new FileStream(Program.rvSettings.CacheFile, FileMode.Open, FileAccess.Read);
             if (fs.Length < 4)
+            {
                 ReportError.UnhandledExceptionHandler("Cache is Corrupt, revert to Backup.");
+            }
 
 
             BinaryReader br = new BinaryReader(fs);
 
-            if (Bgw != null)
-                Bgw.ReportProgress(0, new bgwSetRange((int)fs.Length));
+            Bgw?.ReportProgress(0, new bgwSetRange((int) fs.Length));
 
             DBVersion.VersionNow = br.ReadInt32();
 
@@ -112,11 +115,15 @@ namespace ROMVault2.RvDB
             }
 
             if (fs.Position > fs.Length - 8)
+            {
                 ReportError.UnhandledExceptionHandler("Cache is Corrupt, revert to Backup.");
+            }
 
             ulong testEOF = br.ReadUInt64();
             if (testEOF != EndCacheMarker)
+            {
                 ReportError.UnhandledExceptionHandler("Cache is Corrupt, revert to Backup.");
+            }
 
             br.Close();
             fs.Close();
@@ -131,8 +138,4 @@ namespace ROMVault2.RvDB
             return v ?? "";
         }
     }
-
 }
-
-
-

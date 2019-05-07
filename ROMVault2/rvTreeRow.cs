@@ -11,7 +11,12 @@ namespace ROMVault2
 {
     public class RvTreeRow
     {
-        public enum TreeSelect { UnSelected, Selected, Disabled }
+        public enum TreeSelect
+        {
+            UnSelected,
+            Selected,
+            Disabled
+        }
 
 
         public string TreeBranches;
@@ -31,26 +36,9 @@ namespace ROMVault2
             _pChecked = TreeSelect.Selected;
         }
 
-        public void Write(BinaryWriter bw)
-        {
-            _filePointer = bw.BaseStream.Position;
-            bw.Write(_pTreeExpanded);
-            bw.Write((byte)_pChecked);
-        }
-
-        public void Read(BinaryReader br)
-        {
-            _filePointer = br.BaseStream.Position;
-            _pTreeExpanded = br.ReadBoolean();
-            _pChecked = (TreeSelect)br.ReadByte();
-        }
-
         public bool TreeExpanded
         {
-            get
-            {
-                return _pTreeExpanded;
-            }
+            get { return _pTreeExpanded; }
             set
             {
                 if (_pTreeExpanded != value)
@@ -63,10 +51,7 @@ namespace ROMVault2
 
         public TreeSelect Checked
         {
-            get
-            {
-                return _pChecked;
-            }
+            get { return _pChecked; }
             set
             {
                 if (_pChecked != value)
@@ -77,6 +62,20 @@ namespace ROMVault2
             }
         }
 
+        public void Write(BinaryWriter bw)
+        {
+            _filePointer = bw.BaseStream.Position;
+            bw.Write(_pTreeExpanded);
+            bw.Write((byte) _pChecked);
+        }
+
+        public void Read(BinaryReader br)
+        {
+            _filePointer = br.BaseStream.Position;
+            _pTreeExpanded = br.ReadBoolean();
+            _pChecked = (TreeSelect) br.ReadByte();
+        }
+
         private void CacheUpdate()
         {
             if (_filePointer >= 0)
@@ -85,7 +84,7 @@ namespace ROMVault2
                 BinaryWriter bw = new BinaryWriter(fs);
                 fs.Position = _filePointer;
                 bw.Write(_pTreeExpanded);
-                bw.Write((byte)_pChecked);
+                bw.Write((byte) _pChecked);
 
                 bw.Flush();
                 bw.Close();
@@ -95,5 +94,4 @@ namespace ROMVault2
             }
         }
     }
-
 }
