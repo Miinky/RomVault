@@ -74,13 +74,12 @@ namespace ROMVault2
                 }
                 ReportProgress(new bgwSetRange(totalFixes));
 
-#if !NEWFINDFIX
 
                 DBHelper.GetSelectedFilesSortCRCSize(out _lstRomTableSortedCRCSize);
                 DBHelper.GetSelectedFilesSortSHA1CHD(out _lstRomTableSortedSHA1CHD);
 
                 ReportError.ReportList(_lstRomTableSortedCRCSize);
-#endif
+
                 _processList = new List<RvBase>();
 
                 for (int i = 0; i < DB.DirTree.ChildCount; i++)
@@ -98,10 +97,8 @@ namespace ROMVault2
                     }
                 }
 
-#if !NEWFINDFIX
                 _lstRomTableSortedCRCSize = null;
                 _lstRomTableSortedSHA1CHD = null;
-#endif
 
                 ReportProgress(new bgwText("Updating Cache"));
                 DB.Write();
@@ -730,17 +727,6 @@ namespace ROMVault2
                 return ReturnCode.Good;
             }
 
-#if NEWFINDFIX
-                List<RvFile> lstFixRomTable = new List<RvFile>();
-                List<RvFile> family = fixFile.MyFamily.Family;
-                for (int iFind = 0; iFind < family.Count; iFind++)
-                {
-                    if (family[iFind].GotStatus == GotStatus.Got && FindFixes.CheckIfMissingFileCanBeFixedByGotFile(fixFile, family[iFind]))
-                        lstFixRomTable.Add(family[iFind]);
-                }
-            RvFile fixingFile = lstFixRomTable[0];
-#else
-
             // search for the database for the file to be used to repair this file:
             List<RvFile> lstFixRomTableCRC;
             DBHelper.RomSearchFindFixes(fixFile, _lstRomTableSortedCRCSize, out lstFixRomTableCRC);
@@ -759,7 +745,6 @@ namespace ROMVault2
                 lstFixRomTableCRC.Count > 0 ?
                     lstFixRomTableCRC[0] :
                     lstFixRomTableSHA1CHD[0];
-#endif
             string fts = fixingFile.FullName;
             ReportProgress(new bgwShowFix(Path.GetDirectoryName(fixFileFullName), "", Path.GetFileName(fixFileFullName), fixFile.Size, "<--", Path.GetDirectoryName(fts), Path.GetFileName(fts), fixingFile.Name));
 
@@ -834,15 +819,6 @@ namespace ROMVault2
             CheckReprocessClearList();
             // Check the files that we found that where used to fix this file, and if they not listed as correct files, they can be set to be deleted.
 
-#if NEWFINDFIX
-            foreach (RvFile file in lstFixRomTable)
-            {
-                if (file.RepStatus != RepStatus.NeededForFix && file.RepStatus != RepStatus.Rename) continue;
-                file.RepStatus = RepStatus.Delete;
-                CheckReprocess(file, true);
-            }
-#else
-
             foreach (RvFile file in lstFixRomTableCRC)
             {
                 if ((file.RepStatus != RepStatus.NeededForFix) && (file.RepStatus != RepStatus.Rename))
@@ -861,7 +837,7 @@ namespace ROMVault2
                 file.RepStatus = RepStatus.Delete;
                 CheckReprocess(file, true);
             }
-#endif
+
             CheckReprocessFinalCheck();
 
             _fixed++;
@@ -1147,18 +1123,8 @@ namespace ROMVault2
                             break;
                         }
 
-#if NEWFINDFIX
-                            List<RvFile> lstFixRomTable = new List<RvFile>();
-                            List<RvFile> family = zipFileFixing.MyFamily.Family;
-                            for (int iFind = 0; iFind < family.Count; iFind++)
-                            {
-                                if (family[iFind].GotStatus == GotStatus.Got && FindFixes.CheckIfMissingFileCanBeFixedByGotFile(zipFileFixing, family[iFind]))
-                                    lstFixRomTable.Add(family[iFind]);
-                            }
-#else
                         List<RvFile> lstFixRomTable;
                         DBHelper.RomSearchFindFixes(zipFileFixing, _lstRomTableSortedCRCSize, out lstFixRomTable);
-#endif
 
                         ReportError.LogOut("Found Files To use for Fixes:");
                         foreach (RvFile t in lstFixRomTable)
@@ -1649,9 +1615,6 @@ namespace ROMVault2
 
         private static void ReCheckFile(RvFile searchFile)
         {
-#if NEWFINDFIX
-            FindFixesNew.ListCheck(searchFile.MyFamily);
-#else
             int index;
             int length;
 
@@ -1663,7 +1626,6 @@ namespace ROMVault2
             }
 
             FindFixes.ListCheck(_lstRomTableSortedCRCSize, index, length);
-#endif
         }
 
         private static ReturnCode DoubleCheckDelete(RvFile fileDeleting)
@@ -1682,15 +1644,6 @@ namespace ROMVault2
                 return ReturnCode.Good;
             }
 
-#if NEWFINDFIX
-            List<RvFile> lstFixRomTable = new List<RvFile>();
-            List<RvFile> family = fileDeleting.MyFamily.Family;
-            for (int iFind = 0; iFind < family.Count; iFind++)
-            {
-                if (family[iFind].GotStatus == GotStatus.Got && FindFixes.CheckIfMissingFileCanBeFixedByGotFile(fileDeleting, family[iFind]))
-                    lstFixRomTable.Add(family[iFind]);
-            }
-#else
             List<RvFile> lstFixRomTableCRCSize;
             List<RvFile> lstFixRomTableSHA1CHD;
 
@@ -1700,7 +1653,7 @@ namespace ROMVault2
             List<RvFile> lstFixRomTable = new List<RvFile>();
             lstFixRomTable.AddRange(lstFixRomTableCRCSize);
             lstFixRomTable.AddRange(lstFixRomTableSHA1CHD);
-#endif
+
             RvFile fileToCheck = null;
             int i = 0;
             while ((i < lstFixRomTable.Count) && (fileToCheck == null))
@@ -2020,9 +1973,7 @@ namespace ROMVault2
         }
 
 
-#if !NEWFINDFIX
         private static List<RvFile> _lstRomTableSortedCRCSize;
         private static List<RvFile> _lstRomTableSortedSHA1CHD;
-#endif
     }
 }

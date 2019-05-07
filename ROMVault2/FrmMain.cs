@@ -612,19 +612,11 @@ namespace ROMVault2
 
         private void FindFix()
         {
-#if NEWFINDFIX
-            FrmProgressWindow progress = new FrmProgressWindow(this, "Finding Fixes", FindFixesNew.ScanFiles);
-            progress.ShowDialog(this);
-            progress.Dispose();
-
-            DatSetSelected(DirTree.Selected);
-#else
             FrmProgressWindow progress = new FrmProgressWindow(this, "Finding Fixes", FindFixes.ScanFiles);
             progress.ShowDialog(this);
             progress.Dispose();
 
             DatSetSelected(DirTree.Selected);
-#endif
         }
 
 
